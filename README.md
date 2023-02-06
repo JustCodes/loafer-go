@@ -42,7 +42,7 @@ func main() {
     manager.RegisterRoute(loafer_go.NewRoute("queuename-1", handler1, 10, 30, 10))
     manager.RegisterRoute(loafer_go.NewRoute("queuename-2", handler1, 10, 30, 10))
 
-    // start the manager it will run until you stop it witl Ctrl + C
+    // start the manager it will run until you stop it with Ctrl + C
 	err := manager.Run()
 
 	if err != nil {
