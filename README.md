@@ -12,16 +12,16 @@ import (
 
 func main() {
   c := loafer_go.Config{
-  // The hostname is used only when using localstack/goaws
-  Hostname:   "http://localhost:4100",
-  Key:        "aws-key",
-  Secret:     "aws-secret",
-  Region:     "us-east-1",
-  // the number of workers will be divided between the routes
-  // in this example, each route will have 15 workers
-  // you should use with care, because using too many workers 
-  // can cause problems consuming too much resources
-  WorkerPool: 30, 
+    // The hostname is used only when using localstack/goaws
+    Hostname:   "http://localhost:4100",
+    Key:        "aws-key",
+    Secret:     "aws-secret",
+    Region:     "us-east-1",
+    // the number of workers will be divided between the routes
+    // in this example, each route will have 15 workers
+    // you should use with care, because using too many workers 
+    // can cause problems consuming too much resources
+    WorkerPool: 30, 
   }
 
   // initialize the manager
