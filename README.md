@@ -71,4 +71,6 @@ func handler2(ctx context.Context, m loafer_go.Message) error {
 
 ### Acknowledgments
 
-This lib is inspired by [loafer](https://github.com/georgeyk/loafer/) and [gosqs](https://github.com/qhenkart/gosqs)
+This lib is inspired by [loafer](https://github.com/georgeyk/loafer/) and [gosqs](https://github.com/qhenkart/gosqs).
+
+I used [goaws](https://github.com/p4tin/goaws) for testing.
