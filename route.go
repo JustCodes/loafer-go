@@ -35,6 +35,7 @@ func NewRoute(queueName string, handler Handler, maxMessages int64, visibilityTi
 		visibilityTimeout: visibilityTimeout,
 		maxMessages:       maxMessages,
 		ExtensionLimit:    2,
+		waitTimeSeconds:   int64(waitTimeSeconds),
 	}
 }
 
@@ -51,6 +52,7 @@ func (r *Route) configure(c Config) error {
 
 	o, err := r.sqs.GetQueueUrl(&sqs.GetQueueUrlInput{QueueName: &r.queueName})
 	if err != nil {
+		r.logger.Println("error getting queue url for %s", r.queueName)
 		return err
 	}
 	r.queueURL = *o.QueueUrl
