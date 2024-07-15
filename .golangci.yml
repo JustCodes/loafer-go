@@ -1,0 +1,211 @@
+linters-settings:
+  depguard:
+    # Rules to apply.
+    #
+    # Variables:
+    # - File Variables
+    #   you can still use and exclamation mark ! in front of a variable to say not to use it.
+    #   Example !$test will match any file that is not a go test file.
+    #
+    #   `$all` - matches all go files
+    #   `$test` - matches all go test files
+    #
+    # - Package Variables
+    #
+    #  `$gostd` - matches all of go's standard library (Pulled from `GOROOT`)
+    #
+    # Default: Only allow $gostd in all files.
+    rules:
+      # Name of a rule.
+      main:
+        # List of file globs that will match this list of settings to compare against.
+        # Default: $all
+        files:
+          - "$all"
+          - "!$test"
+          # List of allowed packages.
+          # allow:
+          # - $gostd
+        # Packages that are not allowed where the value is a suggestion.
+        deny:
+          - pkg: "github.com/sirupsen/logrus"
+            desc: not allowed
+          - pkg: "github.com/pkg/errors"
+            desc: Should be replaced by standard lib errors package
+
+  gosec:
+    includes:
+      - G401
+      - G306
+      - G402
+    excludes:
+      - G204
+      - G101
+    config:
+      G306: "0600"
+  stylecheck:
+    # Select the Go version to target. The default is '1.13'.
+    checks: [ "all", "-ST1000", "-ST1020", "-ST1021", "-ST1022" ]
+  errcheck:
+    # report about not checking of errors in type assertions: `a := b.(MyStruct)`;
+    # default is false: such cases aren't reported by default.
+    check-type-assertions: false
+
+    # report about assignment of errors to blank identifier: `num, _ := strconv.Atoi(numStr)`;
+    # default is false: such cases aren't reported by default.
+    check-blank: false
+
+    # list of functions to exclude from checking, where each entry is a single function to exclude.
+    # see https://github.com/kisielk/errcheck#excluding-functions for details
+    exclude-functions:
+      - (io.ReadCloser).Close
+
+  revive:
+    ignore-generated-header: true
+    severity: warning
+    confidence: 0.0
+    rules:
+      - name: atomic
+      - name: blank-imports
+      - name: exported
+      - name: var-naming
+        arguments: [ [ "SKU" ], [ "VM" ] ]
+      - name: cyclomatic
+        arguments: [ 28 ]
+      - name: unexported-return
+        severity: warning
+      - name: unhandled-error
+        arguments: [ "fmt.Fprintf", "resp.Body.Close" ]
+      - name: indent-error-flow
+        severity: warning
+  godox:
+    keywords:
+      - BUG
+      - NOTE
+      - FIXME
+      - HACK
+  funlen:
+    lines: 100
+    statements: 50
+  gci:
+    sections:
+      - prefix(github.com/JustCodes/loafer-go)
+  goconst:
+    min-len: 2
+    min-occurrences: 2
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+    disabled-checks:
+      - dupImport # https://github.com/go-critic/go-critic/issues/845
+      - ifElseChain
+      - octalLiteral
+      - whyNoLint
+      - wrapperFunc
+      - importShadow
+      - stringConcatSimplify
+      - redundantSprint
+  gocyclo:
+    min-complexity: 15
+  goimports:
+    local-prefixes: github.com/JustCodes/loafer-go
+  mnd:
+    checks: [argument,case,condition,return]
+  govet:
+    enable-all: true
+    disable:
+      - fieldalignment
+  lll:
+    line-length: 140
+  misspell:
+    locale: US
+  nakedret:
+    max-func-lines: 50
+
+linters:
+  # please, do not use `enable-all`: it's deprecated and will be removed soon.
+  # inverted configuration with `enable-all` and `disable` is not scalable during updates of golangci-lint
+  disable-all: true
+  enable:
+    - depguard
+    - dogsled
+    - dupl
+    - errcheck
+    - exportloopref
+    - exhaustive
+    - funlen
+    - gochecknoinits
+    - goconst
+    - gocritic
+    - gocyclo
+    - gofmt
+    - goimports
+    - mnd
+    - goprintffuncname
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - lll
+    - misspell
+    - nakedret
+    - nolintlint
+    - staticcheck
+    - stylecheck
+    - typecheck
+    - unconvert
+    - unused
+    - whitespace
+    - asciicheck
+    - gocognit
+    - godox
+    - prealloc
+    - revive
+
+  # don't enable:
+  # - scopelint
+  # - gochecknoglobals
+  # - godot
+  # - goerr113
+  # - interfacer
+  # - maligned
+  # - nestif
+  # - testpackage
+  # - wsl
+
+issues:
+  exclude-use-default: false
+  exclude-rules:
+    - path: "_test.go"
+      linters:
+        - bodyclose
+        - errcheck
+        - funlen
+        - gochecknoglobals
+        - gocritic
+        - godot
+        - goerr113
+        - interfacer
+        - maligned
+        - misspell
+        - nestif
+        - revive
+        - scopelint
+        - testpackage
+        - wsl
+        - unconvert
+        - gocognit
+        - dogsled
+  exclude-dirs:
+    - .github
+    - example
+
+run:
+  go: "1.22"
+  # timeout for analysis, e.g. 30s, 5m, default is 1m
+  timeout: 5m
+  tests: false
