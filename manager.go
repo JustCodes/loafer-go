@@ -1,34 +1,35 @@
-package loafer_go
+package loafergo
 
 import "sync"
 
-type manager struct {
+// Manager holds the routes and config fields
+type Manager struct {
 	routes []*Route
 	config Config
 }
 
-// NewManager creates a new manager with the given configuration
-func NewManager(config Config) *manager {
-	return &manager{config: config}
+// NewManager creates a new Manager with the given configuration
+func NewManager(config Config) *Manager { //nolint:gocritic
+	return &Manager{config: config}
 }
 
-// Register a Route to the manager
-func (m *manager) RegisterRoute(Route *Route) {
-	m.routes = append(m.routes, Route)
+// RegisterRoute register a new route to the Manager
+func (m *Manager) RegisterRoute(route *Route) {
+	m.routes = append(m.routes, route)
 }
 
-// Register Routes to the manager
-func (m *manager) RegisterRoutes(routes []*Route) {
+// RegisterRoutes register more than one route to the Manager
+func (m *Manager) RegisterRoutes(routes []*Route) {
 	m.routes = append(m.routes, routes...)
 }
 
-// Run the manager distributing the worker pool by the number of routes
-func (m *manager) Run() error {
+// Run the Manager distributing the worker pool by the number of routes
+func (m *Manager) Run() error {
 	if len(m.routes) == 0 {
 		return nil
 	}
 	// the worker pool is divided by the number of routes
-	var workerPool int = m.config.WorkerPool / len(m.routes)
+	var workerPool = m.config.WorkerPool / len(m.routes)
 
 	if workerPool == 0 {
 		workerPool = 1
@@ -38,7 +39,7 @@ func (m *manager) Run() error {
 	wg.Add(len(m.routes))
 
 	for _, Route := range m.routes {
-		err := Route.configure(m.config)
+		err := Route.configure(&m.config)
 		if err != nil {
 			return err
 		}

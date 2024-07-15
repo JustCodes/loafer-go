@@ -1,4 +1,4 @@
-package loafer_go
+package loafergo
 
 import (
 	"context"
@@ -7,6 +7,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
+const (
+	defaultVisibilityTimeoutControl = 10
+	defaultRetryTimeout             = 10 * time.Second
+)
+
+// Route holds the route fields
 type Route struct {
 	sqs               *sqs.SQS
 	queueName         string
@@ -19,7 +25,8 @@ type Route struct {
 	waitTimeSeconds   int64
 }
 
-func NewRoute(queueName string, handler Handler, maxMessages int64, visibilityTimeout int, waitTimeSeconds int) *Route {
+// NewRoute creates a new Route
+func NewRoute(queueName string, handler Handler, maxMessages int64, visibilityTimeout, waitTimeSeconds int) *Route {
 	if visibilityTimeout <= 0 {
 		visibilityTimeout = 30
 	}
@@ -39,7 +46,7 @@ func NewRoute(queueName string, handler Handler, maxMessages int64, visibilityTi
 	}
 }
 
-func (r *Route) configure(c Config) error {
+func (r *Route) configure(c *Config) error {
 	sess, err := newSession(c)
 	if err != nil {
 		return err
@@ -71,20 +78,29 @@ func (r *Route) run(workerPool int) {
 	}
 
 	for {
-		output, err := r.sqs.ReceiveMessage(&sqs.ReceiveMessageInput{QueueUrl: &r.queueURL, WaitTimeSeconds: &r.waitTimeSeconds, MaxNumberOfMessages: &r.maxMessages, MessageAttributeNames: []*string{&all}})
+		output, err := r.sqs.ReceiveMessage(
+			&sqs.ReceiveMessageInput{
+				QueueUrl:              &r.queueURL,
+				WaitTimeSeconds:       &r.waitTimeSeconds,
+				MaxNumberOfMessages:   &r.maxMessages,
+				MessageAttributeNames: []*string{&all},
+			},
+		)
 		if err != nil {
 			r.Logger().Println("%s , retrying in 10s", ErrGetMessage.Context(err).Error())
-			time.Sleep(10 * time.Second)
+			time.Sleep(defaultRetryTimeout)
 			continue
 		}
 
 		for _, m := range output.Messages {
-			//a message will be sent to the DLQ automatically after 4 tries if it is received but not deleted
+			// a message will be sent to the DLQ automatically after 4 tries if it is received but not deleted
 			jobs <- newMessage(m)
 		}
 	}
 }
 
+// Logger returns a Logger
+// if config logger is a nil so it will set a defaultLogger
 func (r *Route) Logger() Logger {
 	if r.logger == nil {
 		return &defaultLogger{}
@@ -109,17 +125,17 @@ func (r *Route) dispatch(m *message) error {
 	}
 
 	// finish the extension channel if the message was processed successfully
-	m.Success(ctx)
+	_ = m.Success(ctx)
 
-	//deletes message if the handler was successful or if there was no handler with that route
-	return r.delete(m) //MESSAGE CONSUMED
+	// deletes message if the handler was successful or if there was no handler with that route
+	return r.delete(m) // MESSAGE CONSUMED
 }
 
 func (r *Route) extend(ctx context.Context, m *message) {
 	var count int
 	extension := int64(r.visibilityTimeout)
 	for {
-		//only allow 1 extensions (Default 1m30s)
+		// only allow 1 extension (Default 1m30s)
 		if count >= r.ExtensionLimit {
 			r.Logger().Println(ErrMessageProcessing.Error(), r.queueName)
 			return
@@ -127,15 +143,21 @@ func (r *Route) extend(ctx context.Context, m *message) {
 
 		count++
 		// allow 10 seconds to process the extension request
-		time.Sleep(time.Duration(r.visibilityTimeout-10) * time.Second)
+		time.Sleep(time.Duration(r.visibilityTimeout-defaultVisibilityTimeoutControl) * time.Second)
 		select {
 		case <-m.err:
 			// goroutine finished
 			return
 		default:
 			// double the allowed processing time
-			extension = extension + int64(r.visibilityTimeout)
-			_, err := r.sqs.ChangeMessageVisibility(&sqs.ChangeMessageVisibilityInput{QueueUrl: &r.queueURL, ReceiptHandle: m.ReceiptHandle, VisibilityTimeout: &extension})
+			extension += int64(r.visibilityTimeout)
+			_, err := r.sqs.ChangeMessageVisibility(
+				&sqs.ChangeMessageVisibilityInput{
+					QueueUrl:          &r.queueURL,
+					ReceiptHandle:     m.ReceiptHandle,
+					VisibilityTimeout: &extension,
+				},
+			)
 			if err != nil {
 				r.Logger().Println(ErrUnableToExtend.Error(), err.Error())
 				return

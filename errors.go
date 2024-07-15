@@ -1,4 +1,4 @@
-package loafer_go
+package loafergo
 
 import (
 	"fmt"

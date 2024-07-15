@@ -1,4 +1,4 @@
-package loafer_go
+package loafergo
 
 import (
 	"strconv"
@@ -9,6 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 )
+
+const defaultMaxRetries = 10
 
 // Config defines the gosqs configuration
 type Config struct {
@@ -22,7 +24,7 @@ type Config struct {
 	Hostname string
 	// account ID of the aws account, used for determining the topic ARN
 	AWSAccountID string
-	// environment name, used for determinig the topic ARN
+	// environment name, used for determining the topic ARN
 	Env string
 	// prefix of the topic, this is set as a prefix to the environment
 	TopicPrefix string
@@ -34,7 +36,7 @@ type Config struct {
 	RetryCount int
 	// defines the total amount of goroutines that can be run by the consumer
 	WorkerPool int
-	// defines the total number of processing extensions that occur. Each proccessing extension will double the
+	// defines the total number of processing extensions that occur. Each processing extension will double the
 	// visibilitytimeout counter, ensuring the handler has more time to process the message. Default is 2 extensions (1m30s processing time)
 	// set to 0 to turn off extension processing
 	ExtensionLimit *int
@@ -43,11 +45,12 @@ type Config struct {
 	// custom attributes will be viewable on the sqs dashboard as meta data
 	Attributes []customAttribute
 
-	// Add a custom logger, the default will be log.Println
+	// Add a custom logger, the default will be logged.Println
 	Logger Logger
 }
 
-// customAttribute add custom attributes to SNS and SQS messages. This can include correlationIds, or any additional information you would like
+// customAttribute add custom attributes to SNS and SQS messages.
+// This can include correlationIds, or any additional information you would like
 // separate from the payload body. These attributes can be easily seen from the SQS console.
 type customAttribute struct {
 	Title string
@@ -57,7 +60,8 @@ type customAttribute struct {
 	Value string
 }
 
-// NewCustomAttribute adds a custom attribute to SNS and SQS messages. This can include correlationIds, logIds, or any additional information you would like
+// NewCustomAttribute adds a custom attribute to SNS and SQS messages.
+// This can include correlationIds, logIds, or any additional information you would like
 // separate from the payload body. These attributes can be easily seen from the SQS console.
 //
 // must use gosqs.DataTypeNumber of gosqs.DataTypeString for the datatype, the value must match the type provided
@@ -103,12 +107,12 @@ func (r retryer) MaxRetries() int {
 		return r.retryCount
 	}
 
-	return 10
+	return defaultMaxRetries
 }
 
 // newSession creates a new aws session
-func newSession(c Config) (*session.Session, error) {
-	//sets credentials
+func newSession(c *Config) (*session.Session, error) {
+	// sets credentials
 	creds := credentials.NewStaticCredentials(c.Key, c.Secret, "")
 	_, err := creds.Get()
 	if err != nil {
@@ -119,7 +123,7 @@ func newSession(c Config) (*session.Session, error) {
 
 	cfg := request.WithRetryer(aws.NewConfig().WithRegion(c.Region).WithCredentials(creds), r)
 
-	//if an optional hostname config is provided, then replace the default one
+	// if an optional hostname config is provided, then replace the default one
 	//
 	// This will set the default AWS URL to a hostname of your choice. Perfect for testing, or mocking functionality
 	if c.Hostname != "" {

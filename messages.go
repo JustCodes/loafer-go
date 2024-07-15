@@ -1,4 +1,4 @@
-package loafer_go
+package loafergo
 
 import (
 	"context"
@@ -7,13 +7,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
+// Message represents the message interface methods
 type Message interface {
 	// Route returns the event name that is used for routing within a worker, e.g. post_published
 	// Decode will unmarshal the message into a supplied output using json
 	Decode(out interface{}) error
-	// Attribute will return the custom attribute that was sent through out the request.
+	// Attribute will return the custom attribute that was sent throughout the request.
 	Attribute(key string) string
-	// Metadata will return the metadata that was sent through out the request.
+	// Metadata will return the metadata that was sent throughout the request.
 	Metadata() map[string]*string
 }
 
@@ -81,7 +82,8 @@ func (m *message) Success(ctx context.Context) error {
 
 // Attribute will return the custom attribute that was sent with the request.
 // Each message attribute consists of a Name, Type, and Value. For more information,
-// see Amazon SQS message attributes (https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-message-metadata.html#sqs-message-attributes)
+// see Amazon SQS message attributes
+// (https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-message-metadata.html#sqs-message-attributes)
 // in the Amazon SQS Developer Guide.
 func (m *message) Attribute(key string) string {
 	id, ok := m.MessageAttributes[key]
