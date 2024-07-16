@@ -2,19 +2,7 @@ package loafergo
 
 import (
 	"fmt"
-	"log"
 )
-
-// Logger provides a simple interface to implement your own logging platform or use the default
-type Logger interface {
-	Println(v ...interface{})
-}
-
-type defaultLogger struct{}
-
-func (dl *defaultLogger) Println(v ...interface{}) {
-	log.Println(v...)
-}
 
 // SQSError defines the error handler for the gosqs package. SQSError satisfies the error interface and can be
 // used safely with other error handlers

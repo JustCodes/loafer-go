@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
@@ -46,20 +47,16 @@ func NewRoute(queueName string, handler Handler, maxMessages int64, visibilityTi
 	}
 }
 
-func (r *Route) configure(c *Config) error {
-	sess, err := newSession(c)
-	if err != nil {
-		return err
-	}
-	r.sqs = sqs.New(sess)
+func (r *Route) configure(s *session.Session, l Logger) error {
+	r.sqs = sqs.New(s)
 
-	if c.Logger == nil {
+	if l == nil {
 		r.logger = &defaultLogger{}
 	}
 
 	o, err := r.sqs.GetQueueUrl(&sqs.GetQueueUrlInput{QueueName: &r.queueName})
 	if err != nil {
-		r.logger.Println("error getting queue url for %s", r.queueName)
+		r.logger.Log("error getting queue url for %s", r.queueName)
 		return err
 	}
 	r.queueURL = *o.QueueUrl
@@ -87,7 +84,7 @@ func (r *Route) run(workerPool int) {
 			},
 		)
 		if err != nil {
-			r.Logger().Println("%s , retrying in 10s", ErrGetMessage.Context(err).Error())
+			r.logger.Log("%s , retrying in 10s", ErrGetMessage.Context(err).Error())
 			time.Sleep(defaultRetryTimeout)
 			continue
 		}
@@ -99,19 +96,10 @@ func (r *Route) run(workerPool int) {
 	}
 }
 
-// Logger returns a Logger
-// if config logger is a nil so it will set a defaultLogger
-func (r *Route) Logger() Logger {
-	if r.logger == nil {
-		return &defaultLogger{}
-	}
-	return r.logger
-}
-
 func (r *Route) worker(id int, messages <-chan *message) {
 	for m := range messages {
 		if err := r.dispatch(m); err != nil {
-			r.Logger().Println(err.Error())
+			r.logger.Log(err.Error())
 		}
 	}
 }
@@ -137,7 +125,7 @@ func (r *Route) extend(ctx context.Context, m *message) {
 	for {
 		// only allow 1 extension (Default 1m30s)
 		if count >= r.ExtensionLimit {
-			r.Logger().Println(ErrMessageProcessing.Error(), r.queueName)
+			r.logger.Log(ErrMessageProcessing.Error(), r.queueName)
 			return
 		}
 
@@ -159,7 +147,7 @@ func (r *Route) extend(ctx context.Context, m *message) {
 				},
 			)
 			if err != nil {
-				r.Logger().Println(ErrUnableToExtend.Error(), err.Error())
+				r.logger.Log(ErrUnableToExtend.Error(), err.Error())
 				return
 			}
 		}
@@ -169,7 +157,7 @@ func (r *Route) extend(ctx context.Context, m *message) {
 func (r *Route) delete(m *message) error {
 	_, err := r.sqs.DeleteMessage(&sqs.DeleteMessageInput{QueueUrl: &r.queueURL, ReceiptHandle: m.ReceiptHandle})
 	if err != nil {
-		r.Logger().Println(ErrUnableToDelete.Context(err).Error())
+		r.logger.Log(ErrUnableToDelete.Context(err).Error())
 		return ErrUnableToDelete.Context(err)
 	}
 	return nil

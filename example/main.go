@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	c := loafergo.Config{
+	c := &loafergo.Config{
 		// for emulation only
 		Hostname:   "http://localhost:4100",
 		Key:        "aws-key",

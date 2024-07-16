@@ -3,11 +3,7 @@ package loafergo
 import (
 	"strconv"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
 )
 
 const defaultMaxRetries = 10
@@ -108,27 +104,4 @@ func (r retryer) MaxRetries() int {
 	}
 
 	return defaultMaxRetries
-}
-
-// newSession creates a new aws session
-func newSession(c *Config) (*session.Session, error) {
-	// sets credentials
-	creds := credentials.NewStaticCredentials(c.Key, c.Secret, "")
-	_, err := creds.Get()
-	if err != nil {
-		return nil, ErrInvalidCreds.Context(err)
-	}
-
-	r := &retryer{retryCount: c.RetryCount}
-
-	cfg := request.WithRetryer(aws.NewConfig().WithRegion(c.Region).WithCredentials(creds), r)
-
-	// if an optional hostname config is provided, then replace the default one
-	//
-	// This will set the default AWS URL to a hostname of your choice. Perfect for testing, or mocking functionality
-	if c.Hostname != "" {
-		cfg.Endpoint = &c.Hostname
-	}
-
-	return session.NewSession(cfg)
 }
