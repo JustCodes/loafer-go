@@ -20,8 +20,14 @@ func main() {
 	manager := loafergo.NewManager(ctx, c)
 
 	var routes = []*loafergo.Route{
-		loafergo.NewRoute("queuename-1", handler1, 10, 30, 10),
-		loafergo.NewRoute("queuename-2", handler2, 10, 30, 10),
+		loafergo.NewRoute(
+			"queuename-1",
+			handler1,
+			loafergo.RouteWithVisibilityTimeout(25),
+			loafergo.RouteWithMaxMessages(5),
+			loafergo.RouteWithWaitTimeSeconds(8),
+		),
+		loafergo.NewRoute("queuename-2", handler2),
 	}
 
 	manager.RegisterRoutes(routes)

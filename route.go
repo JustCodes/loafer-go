@@ -10,9 +10,9 @@ import (
 )
 
 const (
-	defaultVisibilityTimeoutControl = 10
 	defaultRetryTimeout             = 10 * time.Second
 	all                             = "All"
+	defaultVisibilityTimeoutControl = 10
 )
 
 // Route holds the route fields
@@ -24,28 +24,41 @@ type Route struct {
 	visibilityTimeout int32
 	logger            Logger
 	maxMessages       int32
-	ExtensionLimit    int
+	extensionLimit    int
 	waitTimeSeconds   int32
 }
 
 // NewRoute creates a new Route
-func NewRoute(queueName string, handler Handler, maxMessages int32, visibilityTimeout, waitTimeSeconds int) *Route {
-	if visibilityTimeout <= 0 {
-		visibilityTimeout = 30
+// By default the new route will set the followed values:
+//
+// Visibility timeout: 30 seconds
+// Max message: 10 unit
+// Wait time: 10 seconds
+//
+// Use the Route method to modify these values.
+// Example:
+//
+// loafergo.NewRoute(
+//
+//		"queuename-1",
+//		handler1,
+//		loafergo.RouteWithVisibilityTimeout(25),
+//		loafergo.RouteWithMaxMessages(5),
+//		loafergo.RouteWithWaitTimeSeconds(8),
+//	)
+func NewRoute(queueName string, handler Handler, optConfigFns ...func(config *RouteConfig)) *Route {
+	cfg := loadDefaultRouteConfig()
+	for _, optFn := range optConfigFns {
+		optFn(cfg)
 	}
-	if maxMessages <= 0 {
-		maxMessages = 10
-	}
-	if waitTimeSeconds <= 0 {
-		waitTimeSeconds = 10
-	}
+
 	return &Route{
 		queueName:         queueName,
 		handler:           handler,
-		visibilityTimeout: int32(visibilityTimeout),
-		maxMessages:       maxMessages,
-		ExtensionLimit:    2,
-		waitTimeSeconds:   int32(waitTimeSeconds),
+		visibilityTimeout: cfg.visibilityTimeout,
+		maxMessages:       cfg.maxMessages,
+		extensionLimit:    cfg.extensionLimit,
+		waitTimeSeconds:   cfg.waitTimeSeconds,
 	}
 }
 
@@ -124,7 +137,7 @@ func (r *Route) extend(ctx context.Context, m *message) {
 	extension := r.visibilityTimeout
 	for {
 		// only allow 1 extension (Default 1m30s)
-		if count >= r.ExtensionLimit {
+		if count >= r.extensionLimit {
 			r.logger.Log(ErrMessageProcessing.Error(), r.queueName)
 			return
 		}

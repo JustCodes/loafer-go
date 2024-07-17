@@ -4,7 +4,7 @@ import (
 	"strconv"
 )
 
-// Config defines the gosqs configuration
+// Config defines the loafer Manager configuration
 type Config struct {
 	// private key to access aws
 	Key string
@@ -35,18 +35,18 @@ type Config struct {
 
 	// Add custom attributes to the message. This might be a correlationId or client meta information
 	// custom attributes will be viewable on the sqs dashboard as meta data
-	Attributes []customAttribute
+	Attributes []CustomAttribute
 
 	// Add a custom logger, the default will be logged.Println
 	Logger Logger
 }
 
-// customAttribute add custom attributes to SNS and SQS messages.
+// CustomAttribute add custom attributes to SNS and SQS messages.
 // This can include correlationIds, or any additional information you would like
 // separate from the payload body. These attributes can be easily seen from the SQS console.
-type customAttribute struct {
+type CustomAttribute struct {
 	Title string
-	// Use gosqs.DataTypeNumber or gosqs.DataTypeString
+	// Use loafergo.DataTypeNumber or loafergo.DataTypeString
 	DataType string
 	// Value represents the value
 	Value string
@@ -56,15 +56,15 @@ type customAttribute struct {
 // This can include correlationIds, logIds, or any additional information you would like
 // separate from the payload body. These attributes can be easily seen from the SQS console.
 //
-// must use gosqs.DataTypeNumber of gosqs.DataTypeString for the datatype, the value must match the type provided
-func (c *Config) NewCustomAttribute(dataType dataType, title string, value interface{}) error {
+// must use loafergo.DataTypeNumber of loafergo.DataTypeString for the datatype, the value must match the type provided
+func (c *Config) NewCustomAttribute(dataType DataType, title string, value interface{}) error {
 	if dataType == DataTypeNumber {
 		val, ok := value.(int)
 		if !ok {
 			return ErrMarshal
 		}
 
-		c.Attributes = append(c.Attributes, customAttribute{title, dataType.String(), strconv.Itoa(val)})
+		c.Attributes = append(c.Attributes, CustomAttribute{title, dataType.String(), strconv.Itoa(val)})
 		return nil
 	}
 
@@ -72,18 +72,19 @@ func (c *Config) NewCustomAttribute(dataType dataType, title string, value inter
 	if !ok {
 		return ErrMarshal
 	}
-	c.Attributes = append(c.Attributes, customAttribute{title, dataType.String(), val})
+	c.Attributes = append(c.Attributes, CustomAttribute{title, dataType.String(), val})
 	return nil
 }
 
-type dataType string
+// DataType is an alias to string
+type DataType string
 
-func (dt dataType) String() string {
+func (dt DataType) String() string {
 	return string(dt)
 }
 
 // DataTypeNumber represents the Number datatype, use it when creating custom attributes
-const DataTypeNumber = dataType("Number")
+const DataTypeNumber = DataType("Number")
 
 // DataTypeString represents the String datatype, use it when creating custom attributes
-const DataTypeString = dataType("String")
+const DataTypeString = DataType("String")
