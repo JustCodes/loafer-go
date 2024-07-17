@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 )
 
 // Message represents the message interface methods
@@ -15,16 +15,16 @@ type Message interface {
 	// Attribute will return the custom attribute that was sent throughout the request.
 	Attribute(key string) string
 	// Metadata will return the metadata that was sent throughout the request.
-	Metadata() map[string]*string
+	Metadata() map[string]string
 }
 
 // message serves as a wrapper for sqs.Message as well as controls the error handling channel
 type message struct {
-	*sqs.Message
+	types.Message
 	err chan error
 }
 
-func newMessage(m *sqs.Message) *message {
+func newMessage(m types.Message) *message {
 	return &message{m, make(chan error, 1)}
 }
 
@@ -52,7 +52,7 @@ func (m *message) body() []byte {
 // ApproximateFirstReceiveTimestamp and SentTimestamp are each returned as an
 // integer representing the epoch time (http://en.wikipedia.org/wiki/Unix_time)
 // in milliseconds.
-func (m *message) Metadata() map[string]*string {
+func (m *message) Metadata() map[string]string {
 	return m.Message.Attributes
 }
 

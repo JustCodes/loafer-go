@@ -16,7 +16,7 @@ type Logger interface {
 //
 // Example:
 //
-//	loafergo.NewManager(loafergo.Config{Logger: loafergo.LoggerFunc(func(args ...interface{}) {
+//	loafergo.NewManager(context.Background(), loafergo.Config{Logger: loafergo.LoggerFunc(func(args ...interface{}) {
 //	    fmt.Fprintln(os.Stdout, args...)
 //	})})
 type LoggerFunc func(...interface{})

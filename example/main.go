@@ -8,6 +8,7 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
 	c := &loafergo.Config{
 		// for emulation only
 		Hostname:   "http://localhost:4100",
@@ -16,7 +17,7 @@ func main() {
 		Region:     "us-east-1",
 		WorkerPool: 30,
 	}
-	manager := loafergo.NewManager(c)
+	manager := loafergo.NewManager(ctx, c)
 
 	var routes = []*loafergo.Route{
 		loafergo.NewRoute("queuename-1", handler1, 10, 30, 10),

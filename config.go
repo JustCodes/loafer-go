@@ -2,11 +2,7 @@ package loafergo
 
 import (
 	"strconv"
-
-	"github.com/aws/aws-sdk-go/aws/client"
 )
-
-const defaultMaxRetries = 10
 
 // Config defines the gosqs configuration
 type Config struct {
@@ -91,17 +87,3 @@ const DataTypeNumber = dataType("Number")
 
 // DataTypeString represents the String datatype, use it when creating custom attributes
 const DataTypeString = dataType("String")
-
-type retryer struct {
-	client.DefaultRetryer
-	retryCount int
-}
-
-// MaxRetries sets the total exponential back off attempts to 10 retries
-func (r retryer) MaxRetries() int {
-	if r.retryCount > 0 {
-		return r.retryCount
-	}
-
-	return defaultMaxRetries
-}

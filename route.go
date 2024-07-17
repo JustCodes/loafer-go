@@ -2,32 +2,34 @@ package loafergo
 
 import (
 	"context"
+	"fmt"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
 )
 
 const (
 	defaultVisibilityTimeoutControl = 10
 	defaultRetryTimeout             = 10 * time.Second
+	all                             = "All"
 )
 
 // Route holds the route fields
 type Route struct {
-	sqs               *sqs.SQS
+	sqs               *sqs.Client
 	queueName         string
 	queueURL          string
 	handler           Handler
-	visibilityTimeout int
+	visibilityTimeout int32
 	logger            Logger
-	maxMessages       int64
+	maxMessages       int32
 	ExtensionLimit    int
-	waitTimeSeconds   int64
+	waitTimeSeconds   int32
 }
 
 // NewRoute creates a new Route
-func NewRoute(queueName string, handler Handler, maxMessages int64, visibilityTimeout, waitTimeSeconds int) *Route {
+func NewRoute(queueName string, handler Handler, maxMessages int32, visibilityTimeout, waitTimeSeconds int) *Route {
 	if visibilityTimeout <= 0 {
 		visibilityTimeout = 30
 	}
@@ -40,23 +42,20 @@ func NewRoute(queueName string, handler Handler, maxMessages int64, visibilityTi
 	return &Route{
 		queueName:         queueName,
 		handler:           handler,
-		visibilityTimeout: visibilityTimeout,
+		visibilityTimeout: int32(visibilityTimeout),
 		maxMessages:       maxMessages,
 		ExtensionLimit:    2,
-		waitTimeSeconds:   int64(waitTimeSeconds),
+		waitTimeSeconds:   int32(waitTimeSeconds),
 	}
 }
 
-func (r *Route) configure(s *session.Session, l Logger) error {
-	r.sqs = sqs.New(s)
+func (r *Route) configure(ctx context.Context, s aws.Config, l Logger) error {
+	r.sqs = sqs.NewFromConfig(s)
+	r.logger = l
 
-	if l == nil {
-		r.logger = &defaultLogger{}
-	}
-
-	o, err := r.sqs.GetQueueUrl(&sqs.GetQueueUrlInput{QueueName: &r.queueName})
+	o, err := r.sqs.GetQueueUrl(ctx, &sqs.GetQueueUrlInput{QueueName: &r.queueName})
 	if err != nil {
-		r.logger.Log("error getting queue url for %s", r.queueName)
+		r.logger.Log(fmt.Sprintf("error getting queue url for %s", r.queueName))
 		return err
 	}
 	r.queueURL = *o.QueueUrl
@@ -64,27 +63,30 @@ func (r *Route) configure(s *session.Session, l Logger) error {
 	return nil
 }
 
-var (
-	all = "All"
-)
-
-func (r *Route) run(workerPool int) {
+func (r *Route) run(ctx context.Context, workerPool int) {
 	jobs := make(chan *message)
 	for w := 1; w <= workerPool; w++ {
-		go r.worker(w, jobs)
+		go r.worker(ctx, w, jobs)
 	}
 
 	for {
 		output, err := r.sqs.ReceiveMessage(
+			ctx,
 			&sqs.ReceiveMessageInput{
 				QueueUrl:              &r.queueURL,
-				WaitTimeSeconds:       &r.waitTimeSeconds,
-				MaxNumberOfMessages:   &r.maxMessages,
-				MessageAttributeNames: []*string{&all},
+				WaitTimeSeconds:       r.waitTimeSeconds,
+				MaxNumberOfMessages:   r.maxMessages,
+				MessageAttributeNames: []string{all},
 			},
 		)
 		if err != nil {
-			r.logger.Log("%s , retrying in 10s", ErrGetMessage.Context(err).Error())
+			r.logger.Log(
+				fmt.Sprintf(
+					"%s , retrying in %fs",
+					ErrGetMessage.Context(err).Error(),
+					defaultRetryTimeout.Seconds(),
+				),
+			)
 			time.Sleep(defaultRetryTimeout)
 			continue
 		}
@@ -96,17 +98,15 @@ func (r *Route) run(workerPool int) {
 	}
 }
 
-func (r *Route) worker(id int, messages <-chan *message) {
+func (r *Route) worker(ctx context.Context, id int, messages <-chan *message) {
 	for m := range messages {
-		if err := r.dispatch(m); err != nil {
+		if err := r.dispatch(ctx, m); err != nil {
 			r.logger.Log(err.Error())
 		}
 	}
 }
 
-func (r *Route) dispatch(m *message) error {
-	ctx := context.Background()
-
+func (r *Route) dispatch(ctx context.Context, m *message) error {
 	go r.extend(ctx, m)
 	if err := r.handler(ctx, m); err != nil {
 		return m.ErrorResponse(ctx, err)
@@ -116,12 +116,12 @@ func (r *Route) dispatch(m *message) error {
 	_ = m.Success(ctx)
 
 	// deletes message if the handler was successful or if there was no handler with that route
-	return r.delete(m) // MESSAGE CONSUMED
+	return r.delete(ctx, m) // MESSAGE CONSUMED
 }
 
 func (r *Route) extend(ctx context.Context, m *message) {
 	var count int
-	extension := int64(r.visibilityTimeout)
+	extension := r.visibilityTimeout
 	for {
 		// only allow 1 extension (Default 1m30s)
 		if count >= r.ExtensionLimit {
@@ -138,12 +138,13 @@ func (r *Route) extend(ctx context.Context, m *message) {
 			return
 		default:
 			// double the allowed processing time
-			extension += int64(r.visibilityTimeout)
+			extension += r.visibilityTimeout
 			_, err := r.sqs.ChangeMessageVisibility(
+				ctx,
 				&sqs.ChangeMessageVisibilityInput{
 					QueueUrl:          &r.queueURL,
 					ReceiptHandle:     m.ReceiptHandle,
-					VisibilityTimeout: &extension,
+					VisibilityTimeout: extension,
 				},
 			)
 			if err != nil {
@@ -154,8 +155,11 @@ func (r *Route) extend(ctx context.Context, m *message) {
 	}
 }
 
-func (r *Route) delete(m *message) error {
-	_, err := r.sqs.DeleteMessage(&sqs.DeleteMessageInput{QueueUrl: &r.queueURL, ReceiptHandle: m.ReceiptHandle})
+func (r *Route) delete(ctx context.Context, m *message) error {
+	_, err := r.sqs.DeleteMessage(
+		ctx,
+		&sqs.DeleteMessageInput{QueueUrl: &r.queueURL, ReceiptHandle: m.ReceiptHandle},
+	)
 	if err != nil {
 		r.logger.Log(ErrUnableToDelete.Context(err).Error())
 		return ErrUnableToDelete.Context(err)

@@ -1,26 +1,34 @@
 package loafergo
 
 import (
+	"context"
 	"sync"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 )
+
+const defaultMaxRetries = 10
 
 // Manager holds the routes and config fields
 type Manager struct {
 	routes []*Route
 	config *Config
+	ctx    context.Context
 }
 
 // NewManager creates a new Manager with the given configuration
-func NewManager(config *Config) *Manager {
+func NewManager(ctx context.Context, config *Config) *Manager {
 	if config.Logger == nil {
 		config.Logger = newDefaultLogger()
 	}
-	return &Manager{config: config}
+
+	if config.RetryCount == 0 {
+		config.RetryCount = defaultMaxRetries
+	}
+
+	return &Manager{config: config, ctx: ctx}
 }
 
 // RegisterRoute register a new route to the Manager
@@ -53,12 +61,12 @@ func (m *Manager) Run() error {
 		if err != nil {
 			return err
 		}
-		err = r.configure(s, m.config.Logger)
+		err = r.configure(m.ctx, s, m.config.Logger)
 		if err != nil {
 			return err
 		}
 		go func() {
-			r.run(workerPool)
+			r.run(m.ctx, workerPool)
 			wg.Done()
 		}()
 	}
@@ -67,23 +75,30 @@ func (m *Manager) Run() error {
 	return nil
 }
 
-func (m *Manager) newSession() (*session.Session, error) {
-	c := credentials.NewStaticCredentials(m.config.Key, m.config.Secret, "")
-	_, err := c.Get()
+func (m *Manager) newSession() (cfg aws.Config, err error) {
+	c := aws.NewCredentialsCache(credentials.NewStaticCredentialsProvider(m.config.Key, m.config.Secret, ""))
+	_, err = c.Retrieve(m.ctx)
 	if err != nil {
-		return nil, ErrInvalidCreds.Context(err)
+		return cfg, ErrInvalidCreds.Context(err)
 	}
 
-	r := &retryer{retryCount: m.config.RetryCount}
-
-	cfg := request.WithRetryer(aws.NewConfig().WithRegion(m.config.Region).WithCredentials(c), r)
+	cfg, err = config.LoadDefaultConfig(
+		m.ctx,
+		config.WithRegion(m.config.Region),
+		config.WithCredentialsProvider(c),
+		config.WithRetryMaxAttempts(m.config.RetryCount),
+	)
 
 	// if an optional hostname config is provided, then replace the default one
 	//
 	// This will set the default AWS URL to a hostname of your choice. Perfect for testing, or mocking functionality
 	if m.config.Hostname != "" {
-		cfg.Endpoint = &m.config.Hostname
+		cfg.BaseEndpoint = aws.String(m.config.Hostname)
 	}
 
-	return session.NewSession(cfg)
+	if err != nil {
+		return
+	}
+
+	return
 }
