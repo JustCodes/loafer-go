@@ -1,0 +1,18 @@
+version: "4.0"
+
+services:
+  localstack:
+    container_name: "loafer-example-localstack"
+    image: localstack/localstack
+    ports:
+      - "127.0.0.1:4566:4566"            # LocalStack Gateway
+      - "127.0.0.1:4510-4559:4510-4559"  # external services port range
+    environment:
+      - DEBUG=${DEBUG-}
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - LOCALSTACK_PERSISTENCE=1
+      - AWS_DEFAULT_REGION=us-east-1
+    volumes:
+      - "./aws/init-aws.sh:/etc/localstack/init/ready.d/init-aws.sh"
+      - "${LOCALSTACK_VOLUME_DIR:-./.volume}:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"

@@ -7,27 +7,37 @@ import (
 	loafergo "github.com/justcodes/loafer-go"
 )
 
+const (
+	awsEndpoint = "http://localhost:4566"
+	awsKey      = "dummy"
+	awsSecret   = "dummy"
+	awsRegion   = "us-east-1"
+	awsProfile  = "test-profile"
+	workPool    = 5
+)
+
 func main() {
 	ctx := context.Background()
 	c := &loafergo.Config{
 		// for emulation only
-		Hostname:   "http://localhost:4100",
-		Key:        "aws-key",
-		Secret:     "aws-secret",
-		Region:     "us-east-1",
-		WorkerPool: 30,
+		Hostname:   awsEndpoint,
+		Key:        awsKey,
+		Secret:     awsSecret,
+		Region:     awsRegion,
+		Profile:    awsProfile,
+		WorkerPool: workPool,
 	}
 	manager := loafergo.NewManager(ctx, c)
 
 	var routes = []*loafergo.Route{
 		loafergo.NewRoute(
-			"queuename-1",
+			"example-1",
 			handler1,
 			loafergo.RouteWithVisibilityTimeout(25),
 			loafergo.RouteWithMaxMessages(5),
 			loafergo.RouteWithWaitTimeSeconds(8),
 		),
-		loafergo.NewRoute("queuename-2", handler2),
+		loafergo.NewRoute("example-1", handler2),
 	}
 
 	manager.RegisterRoutes(routes)
