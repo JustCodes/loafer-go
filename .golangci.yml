@@ -203,6 +203,7 @@ issues:
   exclude-dirs:
     - .github
     - example
+    - fake
 
 run:
   go: "1.22"
