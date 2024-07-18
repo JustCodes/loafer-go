@@ -44,7 +44,7 @@ func (m *Manager) RegisterRoutes(routes []*Route) {
 // Run the Manager distributing the worker pool by the number of routes
 func (m *Manager) Run() error {
 	if len(m.routes) == 0 {
-		return nil
+		return ErrNoRoute
 	}
 	// the worker pool is divided by the number of routes
 	var workerPool = m.config.WorkerPool / len(m.routes)
