@@ -7,13 +7,14 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
 )
 
 const defaultMaxRetries = 10
 
 // Manager holds the routes and config fields
 type Manager struct {
-	routes []*Route
+	routes []Router
 	config *Config
 	ctx    context.Context
 }
@@ -32,12 +33,12 @@ func NewManager(ctx context.Context, config *Config) *Manager {
 }
 
 // RegisterRoute register a new route to the Manager
-func (m *Manager) RegisterRoute(route *Route) {
+func (m *Manager) RegisterRoute(route Router) {
 	m.routes = append(m.routes, route)
 }
 
 // RegisterRoutes register more than one route to the Manager
-func (m *Manager) RegisterRoutes(routes []*Route) {
+func (m *Manager) RegisterRoutes(routes []Router) {
 	m.routes = append(m.routes, routes...)
 }
 
@@ -57,16 +58,17 @@ func (m *Manager) Run() error {
 	wg.Add(len(m.routes))
 
 	for _, r := range m.routes {
-		s, err := m.newSession()
+		client, err := m.newSQSClient()
 		if err != nil {
 			return err
 		}
-		err = r.configure(m.ctx, s, m.config.Logger)
+		err = r.Configure(m.ctx, client, m.config.Logger)
 		if err != nil {
+			m.config.Logger.Log(err)
 			return err
 		}
 		go func() {
-			r.run(m.ctx, workerPool)
+			r.Run(m.ctx, workerPool)
 			wg.Done()
 		}()
 	}
@@ -75,11 +77,11 @@ func (m *Manager) Run() error {
 	return nil
 }
 
-func (m *Manager) newSession() (cfg aws.Config, err error) {
+func (m *Manager) newSQSClient() (client *sqs.Client, err error) {
 	c := aws.NewCredentialsCache(credentials.NewStaticCredentialsProvider(m.config.Key, m.config.Secret, ""))
 	_, err = c.Retrieve(m.ctx)
 	if err != nil {
-		return cfg, ErrInvalidCreds.Context(err)
+		return client, ErrInvalidCreds.Context(err)
 	}
 
 	conf := []func(*config.LoadOptions) error{
@@ -92,10 +94,13 @@ func (m *Manager) newSession() (cfg aws.Config, err error) {
 		conf = append(conf, config.WithSharedConfigProfile(m.config.Profile))
 	}
 
-	cfg, err = config.LoadDefaultConfig(
+	cfg, cfgErr := config.LoadDefaultConfig(
 		m.ctx,
 		conf...,
 	)
+	if cfgErr != nil {
+		return client, cfgErr
+	}
 
 	// if an optional hostname config is provided, then replace the default one
 	//
@@ -104,9 +109,6 @@ func (m *Manager) newSession() (cfg aws.Config, err error) {
 		cfg.BaseEndpoint = aws.String(m.config.Hostname)
 	}
 
-	if err != nil {
-		return
-	}
-
+	client = sqs.NewFromConfig(cfg)
 	return
 }

@@ -29,7 +29,7 @@ func main() {
 	}
 	manager := loafergo.NewManager(ctx, c)
 
-	var routes = []*loafergo.Route{
+	var routes = []loafergo.Router{
 		loafergo.NewRoute(
 			"example-1",
 			handler1,
