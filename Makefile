@@ -27,3 +27,12 @@ install-goimports:
 configure:
 	make install-golang-ci
 	make install-goimports
+
+.PHONY: clean
+clean:
+	@go clean -testcache
+
+.PHONY: test
+test:
+	@$(MAKE) -s clean
+	@go test -timeout 1m -race -covermode=atomic -coverprofile=geral.out $(go list ./... | grep -Ev 'example|.github') ./... && go tool cover -func=geral.out
