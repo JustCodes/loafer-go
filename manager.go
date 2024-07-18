@@ -82,11 +82,19 @@ func (m *Manager) newSession() (cfg aws.Config, err error) {
 		return cfg, ErrInvalidCreds.Context(err)
 	}
 
-	cfg, err = config.LoadDefaultConfig(
-		m.ctx,
+	conf := []func(*config.LoadOptions) error{
 		config.WithRegion(m.config.Region),
 		config.WithCredentialsProvider(c),
 		config.WithRetryMaxAttempts(m.config.RetryCount),
+	}
+
+	if m.config.Profile != "" {
+		conf = append(conf, config.WithSharedConfigProfile(m.config.Profile))
+	}
+
+	cfg, err = config.LoadDefaultConfig(
+		m.ctx,
+		conf...,
 	)
 
 	// if an optional hostname config is provided, then replace the default one

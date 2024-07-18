@@ -10,13 +10,15 @@ type Config struct {
 	Key string
 	// secret to access aws
 	Secret string
-	// region for aws and used for determining the topic ARN
+	// region for aws and used for determining the region
 	Region string
+	// profile for aws and used for determining the profile
+	Profile string
 	// provided automatically by aws, but must be set for emulators or local testing
 	Hostname string
-	// account ID of the aws account, used for determining the topic ARN
+	// account ID of the aws account, used for determining account
 	AWSAccountID string
-	// environment name, used for determining the topic ARN
+	// environment name, used for determining the env name
 	Env string
 	// prefix of the topic, this is set as a prefix to the environment
 	TopicPrefix string
