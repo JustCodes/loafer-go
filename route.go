@@ -128,26 +128,23 @@ func (r *Route) dispatch(ctx context.Context, m *message) error {
 	// finish the extension channel if the message was processed successfully
 	_ = m.Success(ctx)
 
-	// deletes message if the handler was successful or if there was no handler with that route
-	return r.delete(ctx, m) // MESSAGE CONSUMED
+	return r.commitMessage(ctx, m)
 }
 
 func (r *Route) extend(ctx context.Context, m *message) {
 	var count int
 	extension := r.visibilityTimeout
 	for {
-		// only allow 1 extension (Default 1m30s)
+		// only allow extensionLimit extension (Default 1m30s)
 		if count >= r.extensionLimit {
 			r.logger.Log(ErrMessageProcessing.Error(), r.queueName)
 			return
 		}
 
 		count++
-		// allow 10 seconds to process the extension request
 		time.Sleep(time.Duration(r.visibilityTimeout-defaultVisibilityTimeoutControl) * time.Second)
 		select {
 		case <-m.err:
-			// goroutine finished
 			return
 		default:
 			// double the allowed processing time
@@ -168,7 +165,7 @@ func (r *Route) extend(ctx context.Context, m *message) {
 	}
 }
 
-func (r *Route) delete(ctx context.Context, m *message) error {
+func (r *Route) commitMessage(ctx context.Context, m *message) error {
 	_, err := r.sqs.DeleteMessage(
 		ctx,
 		&sqs.DeleteMessageInput{QueueUrl: &r.queueURL, ReceiptHandle: m.ReceiptHandle},
