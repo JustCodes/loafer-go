@@ -62,7 +62,7 @@ func NewRoute(queueName string, handler Handler, optConfigFns ...func(config *Ro
 	}
 }
 
-func (r *Route) configure(ctx context.Context, s aws.Config, l Logger) error {
+func (r *Route) configure(ctx context.Context, s aws.Config, l Logger) error { //nolint:gocritic
 	r.sqs = sqs.NewFromConfig(s)
 	r.logger = l
 
