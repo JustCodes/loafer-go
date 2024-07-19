@@ -2,34 +2,29 @@ package loafergo
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"sync"
-
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials"
-	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	"time"
 )
 
-const defaultMaxRetries = 10
+const (
+	defaultRetryTimeout = 10 * time.Second
+)
 
 // Manager holds the routes and config fields
 type Manager struct {
-	routes []Router
 	config *Config
-	ctx    context.Context
+	routes []Router
 }
 
 // NewManager creates a new Manager with the given configuration
-func NewManager(ctx context.Context, config *Config) *Manager {
+func NewManager(config *Config) *Manager {
 	if config.Logger == nil {
 		config.Logger = newDefaultLogger()
 	}
 
-	if config.RetryCount == 0 {
-		config.RetryCount = defaultMaxRetries
-	}
-
-	return &Manager{config: config, ctx: ctx}
+	return &Manager{config: config}
 }
 
 // RegisterRoute register a new route to the Manager
@@ -43,7 +38,7 @@ func (m *Manager) RegisterRoutes(routes []Router) {
 }
 
 // Run the Manager distributing the worker pool by the number of routes
-func (m *Manager) Run() error {
+func (m *Manager) Run(ctx context.Context) error {
 	if len(m.routes) == 0 {
 		return ErrNoRoute
 	}
@@ -58,17 +53,13 @@ func (m *Manager) Run() error {
 	wg.Add(len(m.routes))
 
 	for _, r := range m.routes {
-		client, err := m.newSQSClient()
-		if err != nil {
-			return err
-		}
-		err = r.Configure(m.ctx, client, m.config.Logger)
+		err := r.Configure(ctx)
 		if err != nil {
 			m.config.Logger.Log(err)
 			return err
 		}
 		go func() {
-			r.Run(m.ctx, workerPool)
+			m.processRoute(ctx, r, workerPool)
 			wg.Done()
 		}()
 	}
@@ -77,38 +68,57 @@ func (m *Manager) Run() error {
 	return nil
 }
 
-func (m *Manager) newSQSClient() (client *sqs.Client, err error) {
-	c := aws.NewCredentialsCache(credentials.NewStaticCredentialsProvider(m.config.Key, m.config.Secret, ""))
-	_, err = c.Retrieve(m.ctx)
-	if err != nil {
-		return client, ErrInvalidCreds.Context(err)
+func (m *Manager) processRoute(ctx context.Context, r Router, workerPool int) {
+	message := make(chan Message)
+	processed := make(chan bool)
+	defer close(processed)
+	defer close(message)
+
+	for w := 1; w <= workerPool; w++ {
+		go m.worker(ctx, r, message, processed)
 	}
 
-	conf := []func(*config.LoadOptions) error{
-		config.WithRegion(m.config.Region),
-		config.WithCredentialsProvider(c),
-		config.WithRetryMaxAttempts(m.config.RetryCount),
-	}
+	for {
+		if errors.Is(ctx.Err(), context.Canceled) {
+			m.config.Logger.Log("context canceled process route stopped")
+			break
+		}
 
-	if m.config.Profile != "" {
-		conf = append(conf, config.WithSharedConfigProfile(m.config.Profile))
-	}
+		msgs, err := r.GetMessages(ctx)
+		if err != nil {
+			m.config.Logger.Log(
+				fmt.Sprintf(
+					"%s , retrying in %fs",
+					ErrGetMessage.Context(err).Error(),
+					defaultRetryTimeout.Seconds(),
+				),
+			)
+			time.Sleep(defaultRetryTimeout)
+			continue
+		}
 
-	cfg, cfgErr := config.LoadDefaultConfig(
-		m.ctx,
-		conf...,
-	)
-	if cfgErr != nil {
-		return client, cfgErr
-	}
+		for _, msg := range msgs {
+			message <- msg
+			<-processed
+		}
 
-	// if an optional hostname config is provided, then replace the default one
-	//
-	// This will set the default AWS URL to a hostname of your choice. Perfect for testing, or mocking functionality
-	if m.config.Hostname != "" {
-		cfg.BaseEndpoint = aws.String(m.config.Hostname)
 	}
+}
 
-	client = sqs.NewFromConfig(cfg)
-	return
+func (m *Manager) worker(ctx context.Context, r Router, msg chan Message, processed chan<- bool) {
+	for v := range msg {
+		err := r.HandlerMessage(ctx, v)
+		if err != nil {
+			m.config.Logger.Log(err)
+			continue
+		}
+
+		err = r.Commit(ctx, v)
+		if err != nil {
+			m.config.Logger.Log(err)
+			continue
+		}
+
+		processed <- true
+	}
 }

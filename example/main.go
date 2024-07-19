@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 
 	loafergo "github.com/justcodes/loafer-go"
+	"github.com/justcodes/loafer-go/sqs"
 )
 
 const (
@@ -17,43 +19,65 @@ const (
 )
 
 func main() {
+	defer panicRecover()
 	ctx := context.Background()
-	c := &loafergo.Config{
-		// for emulation only
-		Hostname:   awsEndpoint,
-		Key:        awsKey,
-		Secret:     awsSecret,
-		Region:     awsRegion,
-		Profile:    awsProfile,
-		WorkerPool: workPool,
+	awsConfig := &sqs.AWSConfig{
+		Key:      awsKey,
+		Secret:   awsSecret,
+		Region:   awsRegion,
+		Profile:  awsProfile,
+		Hostname: awsEndpoint,
 	}
-	manager := loafergo.NewManager(ctx, c)
+
+	sqsClient, err := sqs.NewSQSClient(ctx, &sqs.ClientConfig{
+		AwsConfig:  awsConfig,
+		RetryCount: 4,
+	})
 
 	var routes = []loafergo.Router{
-		loafergo.NewRoute(
-			"example-1",
-			handler1,
-			loafergo.RouteWithVisibilityTimeout(25),
-			loafergo.RouteWithMaxMessages(5),
-			loafergo.RouteWithWaitTimeSeconds(8),
+		sqs.NewRoute(
+			&sqs.Config{
+				SQSClient: sqsClient,
+				Handler:   handler1,
+				QueueName: "example-1",
+			},
+			sqs.RouteWithVisibilityTimeout(25),
+			sqs.RouteWithMaxMessages(5),
+			sqs.RouteWithWaitTimeSeconds(8),
 		),
-		loafergo.NewRoute("example-1", handler2),
+		sqs.NewRoute(&sqs.Config{
+			SQSClient: sqsClient,
+			Handler:   handler2,
+			QueueName: "example-2",
+		}),
 	}
 
+	c := &loafergo.Config{
+		WorkerPool: workPool,
+	}
+	manager := loafergo.NewManager(c)
 	manager.RegisterRoutes(routes)
 
-	err := manager.Run()
+	log.Println("starting consumers")
+	err = manager.Run(ctx)
 	if err != nil {
 		panic(err)
 	}
 }
 
 func handler1(ctx context.Context, m loafergo.Message) error {
-	fmt.Printf("Message received handler1: %+v\n ", m)
+	fmt.Printf("Message received handler1:  %s\n ", string(m.Body()))
 	return nil
 }
 
 func handler2(ctx context.Context, m loafergo.Message) error {
-	fmt.Printf("Message received handler2: %+v\n ", m)
+	fmt.Printf("Message received handler2: %s\n ", string(m.Body()))
 	return nil
+}
+
+func panicRecover() {
+	if r := recover(); r != nil {
+		log.Panicf("error: %v", r)
+	}
+	log.Println("example stopped")
 }

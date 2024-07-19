@@ -1,4 +1,4 @@
-package loafergo
+package sqs
 
 import (
 	"testing"

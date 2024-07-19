@@ -35,4 +35,4 @@ clean:
 .PHONY: test
 test:
 	@$(MAKE) -s clean
-	@go test -timeout 1m -race -covermode=atomic -coverprofile=geral.out $(go list ./... | grep -Ev 'example|.github|fake') && go tool cover -func=geral.out
+	@go test -timeout 1m -race -covermode=atomic -coverpkg=github.com/justcodes/loafer-go,github.com/justcodes/loafer-go/sqs -coverprofile=geral.out ./...  && go tool cover -func=geral.out

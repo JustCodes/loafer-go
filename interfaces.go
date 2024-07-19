@@ -8,8 +8,10 @@ import (
 
 // Router holds the Route methods to configure and run
 type Router interface {
-	Configure(ctx context.Context, c SQSClient, l Logger) error
-	Run(ctx context.Context, workerPool int)
+	Configure(ctx context.Context) error
+	GetMessages(ctx context.Context) ([]Message, error)
+	HandlerMessage(ctx context.Context, msg Message) error
+	Commit(ctx context.Context, m Message) error
 }
 
 // SQSClient represents the aws sqs client methods
@@ -18,4 +20,20 @@ type SQSClient interface {
 	GetQueueUrl(ctx context.Context, params *sqs.GetQueueUrlInput, optFns ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error)
 	ReceiveMessage(ctx context.Context, params *sqs.ReceiveMessageInput, optFns ...func(*sqs.Options)) (*sqs.ReceiveMessageOutput, error)
 	DeleteMessage(ctx context.Context, params *sqs.DeleteMessageInput, optFns ...func(*sqs.Options)) (*sqs.DeleteMessageOutput, error)
+}
+
+// Message represents the message interface methods
+type Message interface {
+	// Decode will unmarshal the message into a supplied output using json
+	Decode(out interface{}) error
+	// Attribute will return the custom attribute that was sent throughout the request.
+	Attribute(key string) string
+	// Metadata will return the metadata that was sent throughout the request.
+	Metadata() map[string]string
+	// Identifier will return a message identifier
+	Identifier() string
+	// Dispatch used to dispatch message if necessary
+	Dispatch()
+	// Body used to get the message Body
+	Body() []byte
 }

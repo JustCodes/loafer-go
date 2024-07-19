@@ -7,9 +7,8 @@ import (
 // SQSError defines the error handler for the loafergo package. SQSError satisfies the error interface and can be
 // used safely with other error handlers
 type SQSError struct {
-	Err string `json:"err"`
-	// contextErr passes the actual error as part of the error message
 	contextErr error
+	Err        string `json:"err"`
 }
 
 // Error is used for implementing the error interface, and for creating
@@ -41,12 +40,6 @@ func newSQSErr(msg string) *SQSError {
 // ErrInvalidCreds invalid credentials
 var ErrInvalidCreds = newSQSErr("invalid aws credentials")
 
-// ErrUnableToDelete unable to delete item
-var ErrUnableToDelete = newSQSErr("unable to delete item in queue")
-
-// ErrUnableToExtend unable to extend message processing time
-var ErrUnableToExtend = newSQSErr("unable to extend message processing time")
-
 // ErrMarshal unable to marshal request
 var ErrMarshal = newSQSErr("unable to marshal request")
 
@@ -58,3 +51,9 @@ var ErrGetMessage = newSQSErr("unable to retrieve message")
 
 // ErrMessageProcessing occurs when a message has exceeded the consumption time limit set by aws SQS
 var ErrMessageProcessing = newSQSErr("processing time exceeding limit")
+
+// ErrNoSQSClient occurs when the sqs client is nil
+var ErrNoSQSClient = newSQSErr("sqs client is nil")
+
+// ErrNoHandler occurs when the handler is nil
+var ErrNoHandler = newSQSErr("handler is nil")
