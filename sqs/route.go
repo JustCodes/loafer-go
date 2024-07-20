@@ -138,7 +138,7 @@ func (r *route) changeMessageVisibility(ctx context.Context, m *message) {
 		time.Sleep(time.Duration(r.visibilityTimeout-defaultVisibilityTimeoutControl) * time.Second)
 		select {
 		case <-m.dispatched:
-			break
+			return
 		default:
 			// double the allowed processing time
 			extension += r.visibilityTimeout
@@ -152,7 +152,6 @@ func (r *route) changeMessageVisibility(ctx context.Context, m *message) {
 			)
 		}
 	}
-	return
 }
 
 func (r *route) checkRequiredFields() error {

@@ -101,7 +101,6 @@ func (m *Manager) processRoute(ctx context.Context, r Router, workerPool int) {
 			message <- msg
 			<-processed
 		}
-
 	}
 }
 
@@ -121,4 +120,9 @@ func (m *Manager) worker(ctx context.Context, r Router, msg chan Message, proces
 
 		processed <- true
 	}
+}
+
+// GetRoutes returns the available routes as a slice of Router type
+func (m *Manager) GetRoutes() []Router {
+	return m.routes
 }
