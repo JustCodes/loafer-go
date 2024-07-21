@@ -23,7 +23,7 @@ func (m *message) body() []byte {
 	return []byte(*m.Message.Body)
 }
 
-// A map of the attributes requested in ReceiveMessage to their respective values.
+// Metadata A map of the attributes requested in ReceiveMessage to their respective values.
 // Supported attributes:
 //
 //   - ApproximateReceiveCount
