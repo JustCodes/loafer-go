@@ -1,0 +1,42 @@
+name: Go CI
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - '**.go'
+      - go.mod
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - '**.go'
+      - go.mod
+
+jobs:
+  test:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.22'
+      - name: Test
+        run: go test -timeout 1m -race -covermode=atomic -coverpkg=github.com/justcodes/loafer-go,github.com/justcodes/loafer-go/sqs -coverprofile=geral.out ./...  && go tool cover -func=geral.out
+
+  lint:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '1.22'
+          cache: false
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.56.0
+          args: --timeout 3m --config .golangci.yaml
