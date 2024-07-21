@@ -37,12 +37,15 @@ type route struct {
 //
 // sqs.NewRoute(
 //
-//		"queuename-1",
-//		handler1,
-//		loafergo.RouteWithVisibilityTimeout(25),
-//		loafergo.RouteWithMaxMessages(5),
-//		loafergo.RouteWithWaitTimeSeconds(8),
-//	) todo: here
+//		&sqs.Config{
+//			SQSClient: sqsClient,
+//			Handler:   handler1,
+//			QueueName: "example-1",
+//		},
+//		sqs.RouteWithVisibilityTimeout(25),
+//		sqs.RouteWithMaxMessages(5),
+//		sqs.RouteWithWaitTimeSeconds(8),
+//	)
 func NewRoute(config *Config, optFns ...func(config *RouteConfig)) loafergo.Router {
 	cfg := loadDefaultRouteConfig()
 	for _, optFn := range optFns {
