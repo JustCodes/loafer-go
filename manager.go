@@ -38,6 +38,7 @@ func (m *Manager) RegisterRoutes(routes []Router) {
 }
 
 // Run the Manager distributing the worker pool by the number of routes
+// returns errors if no routes
 func (m *Manager) Run(ctx context.Context) error {
 	if len(m.routes) == 0 {
 		return ErrNoRoute
