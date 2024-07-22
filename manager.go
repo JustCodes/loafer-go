@@ -71,12 +71,10 @@ func (m *Manager) Run(ctx context.Context) error {
 
 func (m *Manager) processRoute(ctx context.Context, r Router, workerPool int) {
 	message := make(chan Message)
-	processed := make(chan bool)
-	defer close(processed)
 	defer close(message)
 
 	for w := 1; w <= workerPool; w++ {
-		go m.worker(ctx, r, message, processed)
+		go m.worker(ctx, r, message)
 	}
 
 	for {
@@ -100,12 +98,11 @@ func (m *Manager) processRoute(ctx context.Context, r Router, workerPool int) {
 
 		for _, msg := range msgs {
 			message <- msg
-			<-processed
 		}
 	}
 }
 
-func (m *Manager) worker(ctx context.Context, r Router, msg chan Message, processed chan<- bool) {
+func (m *Manager) worker(ctx context.Context, r Router, msg <-chan Message) {
 	for v := range msg {
 		err := r.HandlerMessage(ctx, v)
 		if err != nil {
@@ -118,8 +115,6 @@ func (m *Manager) worker(ctx context.Context, r Router, msg chan Message, proces
 			m.config.Logger.Log(err)
 			continue
 		}
-
-		processed <- true
 	}
 }
 
