@@ -13,8 +13,7 @@ import (
 
 func createTestConfig() *loafergo.Config {
 	return &loafergo.Config{
-		WorkerPool: 10,
-		Logger:     loafergo.LoggerFunc(func(args ...interface{}) {}),
+		Logger: loafergo.LoggerFunc(func(args ...interface{}) {}),
 	}
 }
 
@@ -54,5 +53,15 @@ func TestManager_Run(t *testing.T) {
 		manager.RegisterRoute(mockRoute)
 		err := manager.Run(ctx)
 		assert.NotNil(t, err)
+	})
+
+	t.Run("Should return error no routes", func(t *testing.T) {
+		ctx := context.Background()
+		config := createTestConfig()
+		manager := loafergo.NewManager(config)
+
+		err := manager.Run(ctx)
+		assert.NotNil(t, err)
+		assert.ErrorIs(t, err, loafergo.ErrNoRoute)
 	})
 }

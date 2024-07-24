@@ -57,3 +57,9 @@ var ErrNoSQSClient = newSQSErr("sqs client is nil")
 
 // ErrNoHandler occurs when the handler is nil
 var ErrNoHandler = newSQSErr("handler is nil")
+
+// ErrEmptyParam occurs when the required parameter is missing
+var ErrEmptyParam = newSQSErr("required parameter is missing")
+
+// ErrEmptyRequiredField occurs when the required field is missing
+var ErrEmptyRequiredField = newSQSErr("required field is missing")

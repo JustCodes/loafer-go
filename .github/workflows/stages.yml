@@ -23,7 +23,7 @@ jobs:
         with:
           go-version: '1.22'
       - name: Test
-        run: go test -timeout 1m -race -covermode=atomic -coverpkg=github.com/justcodes/loafer-go,github.com/justcodes/loafer-go/sqs -coverprofile=geral.out ./...  && go tool cover -func=geral.out
+        run: go test -timeout 1m -race -covermode=atomic -coverprofile=tmp.out ./... && cat tmp.out | grep -Ev 'example|fake' > geral.out  && go tool cover -func=geral.out
 
   lint:
     if: github.event_name == 'pull_request'

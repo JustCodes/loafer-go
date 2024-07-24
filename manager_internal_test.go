@@ -29,6 +29,15 @@ func TestNewManager(t *testing.T) {
 				}
 			},
 		},
+		{
+			name:  "WithConfigNil",
+			input: nil,
+			expect: func(t *testing.T, m *Manager) {
+				if m.config.Logger == nil {
+					t.Errorf("Test %v failed: expected a logger but got nil", t.Name())
+				}
+			},
+		},
 	}
 
 	for _, tc := range testCases {

@@ -12,6 +12,7 @@ type Router interface {
 	GetMessages(ctx context.Context) ([]Message, error)
 	HandlerMessage(ctx context.Context, msg Message) error
 	Commit(ctx context.Context, m Message) error
+	WorkerPoolSize(ctx context.Context) int32
 }
 
 // SQSClient represents the aws sqs client methods

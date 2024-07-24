@@ -18,6 +18,7 @@ const (
 	defaultVisibilityTimeout = int32(30)
 	defaultMaxMessages       = int32(10)
 	defaultWaitTimeSeconds   = int32(10)
+	defaultWorkerPoolSize    = int32(5)
 )
 
 // RouteConfig are discrete set of route options that are valid for loading the route configuration
@@ -26,6 +27,7 @@ type RouteConfig struct {
 	maxMessages       int32
 	extensionLimit    int
 	waitTimeSeconds   int32
+	workerPoolSize    int32
 }
 
 func loadDefaultRouteConfig() *RouteConfig {
@@ -34,6 +36,7 @@ func loadDefaultRouteConfig() *RouteConfig {
 		maxMessages:       defaultMaxMessages,
 		extensionLimit:    defaultExtensionLimit,
 		waitTimeSeconds:   defaultWaitTimeSeconds,
+		workerPoolSize:    defaultWorkerPoolSize,
 	}
 }
 
@@ -45,6 +48,10 @@ type LoadRouteConfigFunc func(config *RouteConfig)
 // the last call overrides the previous call values.
 func RouteWithVisibilityTimeout(v int32) LoadRouteConfigFunc {
 	return func(rc *RouteConfig) {
+		if v <= defaultVisibilityTimeoutControl {
+			rc.visibilityTimeout = defaultVisibilityTimeoutControl + 1
+			return
+		}
 		rc.visibilityTimeout = v
 	}
 }
@@ -64,6 +71,15 @@ func RouteWithMaxMessages(v int32) LoadRouteConfigFunc {
 func RouteWithWaitTimeSeconds(v int32) LoadRouteConfigFunc {
 	return func(rc *RouteConfig) {
 		rc.waitTimeSeconds = v
+	}
+}
+
+// RouteWithWorkerPoolSize is a helper function to construct functional options that sets Worker Pool Size value
+// on config's Route. If multiple RouteWithWorkerPoolSize calls are made,
+// the last call overrides the previous call values.
+func RouteWithWorkerPoolSize(v int32) LoadRouteConfigFunc {
+	return func(rc *RouteConfig) {
+		rc.workerPoolSize = v
 	}
 }
 

@@ -15,7 +15,7 @@ func TestRouteWithMaxMessages(t *testing.T) {
 }
 
 func TestRouteWithWaitTimeSeconds(t *testing.T) {
-	cfg := &RouteConfig{}
+	cfg := loadDefaultRouteConfig()
 	var optConfigFns func(config *RouteConfig)
 	optConfigFns = RouteWithWaitTimeSeconds(42)
 	optConfigFns(cfg)
@@ -23,9 +23,28 @@ func TestRouteWithWaitTimeSeconds(t *testing.T) {
 }
 
 func TestRouteWithVisibilityTimeout(t *testing.T) {
-	cfg := &RouteConfig{}
+	t.Run("With custom visibility timeout > defaultVisibilityTimeoutControl", func(t *testing.T) {
+		cfg := loadDefaultRouteConfig()
+		var optConfigFns func(config *RouteConfig)
+		optConfigFns = RouteWithVisibilityTimeout(42)
+		optConfigFns(cfg)
+		assert.Equal(t, int32(42), cfg.visibilityTimeout)
+	})
+
+	t.Run("With custom visibility timeout <= defaultVisibilityTimeoutControl", func(t *testing.T) {
+		cfg := loadDefaultRouteConfig()
+		var optConfigFns func(config *RouteConfig)
+		optConfigFns = RouteWithVisibilityTimeout(defaultVisibilityTimeoutControl)
+		optConfigFns(cfg)
+		assert.Equal(t, int32(defaultVisibilityTimeoutControl+1), cfg.visibilityTimeout)
+	})
+
+}
+
+func TestRouteWithWorkerPoolSize(t *testing.T) {
+	cfg := loadDefaultRouteConfig()
 	var optConfigFns func(config *RouteConfig)
-	optConfigFns = RouteWithVisibilityTimeout(42)
+	optConfigFns = RouteWithWorkerPoolSize(42)
 	optConfigFns(cfg)
-	assert.Equal(t, int32(42), cfg.visibilityTimeout)
+	assert.Equal(t, int32(42), cfg.workerPoolSize)
 }

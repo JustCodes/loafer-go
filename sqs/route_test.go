@@ -41,6 +41,7 @@ func (suite *routeSuite) SetupSuite() {
 		sqs.RouteWithMaxMessages(15),
 		sqs.RouteWithWaitTimeSeconds(8),
 		sqs.RouteWithVisibilityTimeout(12),
+		sqs.RouteWithWorkerPoolSize(11),
 	)
 	suite.logger = loafergo.LoggerFunc(func(args ...interface{}) {
 		fmt.Println(args...)
@@ -306,5 +307,27 @@ func (suite *routeSuite) TestHandlerMessage() {
 		err = suite.route.HandlerMessage(ctx, message[0])
 		suite.NotNil(err)
 		suite.Equal("got error", err.Error())
+	})
+}
+
+func (suite *routeSuite) TestWorkPoolSize() {
+	suite.Run("should work pool size", func() {
+		suite.SetupSuite()
+		ctx := context.Background()
+		got := suite.route.WorkerPoolSize(ctx)
+		suite.Equal(int32(11), got)
+		suite.TearDownSuite()
+	})
+
+	suite.Run("should work pool size default value", func() {
+		ctx := context.Background()
+		suite.route = sqs.NewRoute(&sqs.Config{
+			SQSClient: suite.sqsClient,
+			Handler:   stubHandler,
+			QueueName: "example-1",
+		})
+		got := suite.route.WorkerPoolSize(ctx)
+		suite.Equal(got, int32(5))
+		suite.TearDownSuite()
 	})
 }

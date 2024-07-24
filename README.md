@@ -72,6 +72,7 @@ func main() {
             sqs.RouteWithVisibilityTimeout(25),
             sqs.RouteWithMaxMessages(5),
             sqs.RouteWithWaitTimeSeconds(8),
+			sqs.RouteWithWorkerPoolSize(workPool),
         ),
         sqs.NewRoute(
             &sqs.Config{
@@ -81,9 +82,7 @@ func main() {
             }),
     }
     
-    c := &loafergo.Config{
-        WorkerPool: workPool,
-    }
+    c := &loafergo.Config{}
     manager := loafergo.NewManager(c)
     manager.RegisterRoutes(routes)
     

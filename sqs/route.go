@@ -23,6 +23,7 @@ type route struct {
 	visibilityTimeout int32
 	maxMessages       int32
 	waitTimeSeconds   int32
+	workerPoolSize    int32
 }
 
 // NewRoute creates a new Route
@@ -60,6 +61,7 @@ func NewRoute(config *Config, optFns ...func(config *RouteConfig)) loafergo.Rout
 		visibilityTimeout: cfg.visibilityTimeout,
 		maxMessages:       cfg.maxMessages,
 		waitTimeSeconds:   cfg.waitTimeSeconds,
+		workerPoolSize:    cfg.workerPoolSize,
 	}
 }
 
@@ -128,21 +130,27 @@ func (r *route) HandlerMessage(ctx context.Context, msg loafergo.Message) error 
 	return nil
 }
 
+// WorkerPoolSize returns the router worker pool size
+func (r *route) WorkerPoolSize(ctx context.Context) int32 {
+	return r.workerPoolSize
+}
+
 func (r *route) changeMessageVisibility(ctx context.Context, m *message) {
 	var count int
 	extension := r.visibilityTimeout
+	sleepTime := time.Duration(r.visibilityTimeout-defaultVisibilityTimeoutControl) * time.Second
+	ticker := time.NewTicker(sleepTime)
 	for {
 		// only allow extensionLimit extension (Default 1m30s)
 		if count >= r.extensionLimit {
 			break
 		}
 
-		count++
-		time.Sleep(time.Duration(r.visibilityTimeout-defaultVisibilityTimeoutControl) * time.Second)
 		select {
 		case <-m.dispatched:
 			return
-		default:
+		case <-ticker.C:
+			count++
 			// double the allowed processing time
 			extension += r.visibilityTimeout
 			_, _ = r.sqs.ChangeMessageVisibility(

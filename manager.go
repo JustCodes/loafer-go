@@ -20,6 +20,10 @@ type Manager struct {
 
 // NewManager creates a new Manager with the given configuration
 func NewManager(config *Config) *Manager {
+	if config == nil {
+		config = loadDefaultConfig()
+	}
+
 	if config.Logger == nil {
 		config.Logger = newDefaultLogger()
 	}
@@ -43,12 +47,6 @@ func (m *Manager) Run(ctx context.Context) error {
 	if len(m.routes) == 0 {
 		return ErrNoRoute
 	}
-	// the worker pool is divided by the number of routes
-	var workerPool = m.config.WorkerPool / len(m.routes)
-
-	if workerPool == 0 {
-		workerPool = 1
-	}
 
 	var wg sync.WaitGroup
 	wg.Add(len(m.routes))
@@ -60,7 +58,7 @@ func (m *Manager) Run(ctx context.Context) error {
 			return err
 		}
 		go func() {
-			m.processRoute(ctx, r, workerPool)
+			m.processRoute(ctx, r)
 			wg.Done()
 		}()
 	}
@@ -69,11 +67,11 @@ func (m *Manager) Run(ctx context.Context) error {
 	return nil
 }
 
-func (m *Manager) processRoute(ctx context.Context, r Router, workerPool int) {
+func (m *Manager) processRoute(ctx context.Context, r Router) {
 	message := make(chan Message)
 	defer close(message)
 
-	for w := 1; w <= workerPool; w++ {
+	for w := int32(1); w <= r.WorkerPoolSize(ctx); w++ {
 		go m.worker(ctx, r, message)
 	}
 
@@ -121,4 +119,8 @@ func (m *Manager) worker(ctx context.Context, r Router, msg <-chan Message) {
 // GetRoutes returns the available routes as a slice of Router type
 func (m *Manager) GetRoutes() []Router {
 	return m.routes
+}
+
+func loadDefaultConfig() *Config {
+	return &Config{}
 }
