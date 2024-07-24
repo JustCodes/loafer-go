@@ -8,10 +8,6 @@ import (
 	"time"
 )
 
-const (
-	defaultRetryTimeout = 10 * time.Second
-)
-
 // Manager holds the routes and config fields
 type Manager struct {
 	config *Config
@@ -20,15 +16,9 @@ type Manager struct {
 
 // NewManager creates a new Manager with the given configuration
 func NewManager(config *Config) *Manager {
-	if config == nil {
-		config = loadDefaultConfig()
-	}
+	cfg := loadConfig(config)
 
-	if config.Logger == nil {
-		config.Logger = newDefaultLogger()
-	}
-
-	return &Manager{config: config}
+	return &Manager{config: cfg}
 }
 
 // RegisterRoute register a new route to the Manager
@@ -87,10 +77,10 @@ func (m *Manager) processRoute(ctx context.Context, r Router) {
 				fmt.Sprintf(
 					"%s , retrying in %fs",
 					ErrGetMessage.Context(err).Error(),
-					defaultRetryTimeout.Seconds(),
+					m.config.RetryTimeout.Seconds(),
 				),
 			)
-			time.Sleep(defaultRetryTimeout)
+			time.Sleep(m.config.RetryTimeout)
 			continue
 		}
 
@@ -121,6 +111,23 @@ func (m *Manager) GetRoutes() []Router {
 	return m.routes
 }
 
-func loadDefaultConfig() *Config {
-	return &Config{}
+func loadConfig(config *Config) *Config {
+	cfg := &Config{
+		Logger:       newDefaultLogger(),
+		RetryTimeout: defaultRetryTimeout,
+	}
+
+	if config == nil {
+		return cfg
+	}
+
+	if config.Logger != nil {
+		cfg.Logger = config.Logger
+	}
+
+	if config.RetryTimeout > 0 {
+		cfg.RetryTimeout = config.RetryTimeout
+	}
+
+	return cfg
 }

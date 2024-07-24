@@ -4,7 +4,10 @@ import "testing"
 
 func TestNewManager(t *testing.T) {
 	configWithLogger := &Config{Logger: newDefaultLogger()}
-	configWithoutLogger := &Config{}
+	configWithoutLogger := &Config{
+		Logger:       nil,
+		RetryTimeout: 0,
+	}
 
 	testCases := []struct {
 		name   string
