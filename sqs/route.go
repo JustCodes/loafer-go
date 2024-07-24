@@ -140,6 +140,8 @@ func (r *route) changeMessageVisibility(ctx context.Context, m *message) {
 	extension := r.visibilityTimeout
 	sleepTime := time.Duration(r.visibilityTimeout-defaultVisibilityTimeoutControl) * time.Second
 	ticker := time.NewTicker(sleepTime)
+	defer ticker.Stop()
+
 	for {
 		// only allow extensionLimit extension (Default 1m30s)
 		if count >= r.extensionLimit {
