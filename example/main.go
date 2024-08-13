@@ -6,7 +6,8 @@ import (
 	"log"
 
 	loafergo "github.com/justcodes/loafer-go"
-	"github.com/justcodes/loafer-go/sqs"
+	"github.com/justcodes/loafer-go/aws"
+	"github.com/justcodes/loafer-go/aws/sqs"
 )
 
 const (
@@ -21,7 +22,7 @@ const (
 func main() {
 	defer panicRecover()
 	ctx := context.Background()
-	awsConfig := &sqs.AWSConfig{
+	awsConfig := &aws.Config{
 		Key:      awsKey,
 		Secret:   awsSecret,
 		Region:   awsRegion,
@@ -29,8 +30,8 @@ func main() {
 		Hostname: awsEndpoint,
 	}
 
-	sqsClient, err := sqs.NewSQSClient(ctx, &sqs.ClientConfig{
-		AwsConfig:  awsConfig,
+	sqsClient, err := sqs.NewClient(ctx, &aws.ClientConfig{
+		Config:     awsConfig,
 		RetryCount: 4,
 	})
 

@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	loafergo "github.com/justcodes/loafer-go"
+	"github.com/justcodes/loafer-go/aws/sqs"
 	"github.com/justcodes/loafer-go/fake"
-	"github.com/justcodes/loafer-go/sqs"
 )
 
 func stubHandler(ctx context.Context, m loafergo.Message) error {

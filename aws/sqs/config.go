@@ -107,7 +107,6 @@ type ClientConfig struct {
 	AwsConfig *AWSConfig
 	// used to determine how many attempts exponential backoff should use before logging an error
 	RetryCount int
-	// defines the total amount of goroutines that can be run by the consumer
 }
 
 // CustomAttribute add custom attributes to SNS and SQS messages.

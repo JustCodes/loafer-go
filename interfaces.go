@@ -3,6 +3,7 @@ package loafergo
 import (
 	"context"
 
+	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 )
 
@@ -40,4 +41,10 @@ type Message interface {
 	Dispatch()
 	// Body used to get the message Body
 	Body() []byte
+}
+
+// SNSClient represents the aws sns client methods
+type SNSClient interface {
+	Publish(ctx context.Context, params *sns.PublishInput, optFns ...func(*sns.Options)) (*sns.PublishOutput, error)
+	PublishBatch(ctx context.Context, params *sns.PublishBatchInput, optFns ...func(*sns.Options)) (*sns.PublishBatchOutput, error)
 }

@@ -63,3 +63,6 @@ var ErrEmptyParam = newSQSErr("required parameter is missing")
 
 // ErrEmptyRequiredField occurs when the required field is missing
 var ErrEmptyRequiredField = newSQSErr("required field is missing")
+
+// ErrEmptyInput occurs when the producer received an empty or nil input
+var ErrEmptyInput = newSQSErr("input must be filled")

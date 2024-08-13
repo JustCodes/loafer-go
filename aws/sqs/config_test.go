@@ -6,11 +6,12 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	loafergo "github.com/justcodes/loafer-go"
-	"github.com/justcodes/loafer-go/sqs"
+	loaferAWS "github.com/justcodes/loafer-go/aws"
+	"github.com/justcodes/loafer-go/aws/sqs"
 )
 
 func TestDataType_String(t *testing.T) {
-	d := sqs.DataType("Number")
+	d := loaferAWS.DataType("Number")
 	assert.Equal(t, "Number", d.String())
 }
 
