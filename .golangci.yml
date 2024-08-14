@@ -89,7 +89,7 @@ linters-settings:
     statements: 50
   gci:
     sections:
-      - prefix(github.com/JustCodes/loafer-go)
+      - prefix(github.com/justcodes/loafer-go/v2)
   goconst:
     min-len: 2
     min-occurrences: 2
@@ -112,7 +112,7 @@ linters-settings:
   gocyclo:
     min-complexity: 15
   goimports:
-    local-prefixes: github.com/JustCodes/loafer-go
+    local-prefixes: github.com/justcodes/loafer-go/v2
   mnd:
     checks: [argument,case,condition,return]
   govet:
