@@ -6,9 +6,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	loafergo "github.com/justcodes/loafer-go"
-	loaferAWS "github.com/justcodes/loafer-go/aws"
-	"github.com/justcodes/loafer-go/aws/sns"
+	loafergo "github.com/justcodes/loafer-go/v2"
+	loaferAWS "github.com/justcodes/loafer-go/v2/aws"
+	"github.com/justcodes/loafer-go/v2/aws/sns"
 )
 
 func TestNewProducer_ValidateConfig(t *testing.T) {

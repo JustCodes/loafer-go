@@ -7,11 +7,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	awsSNS "github.com/aws/aws-sdk-go-v2/service/sns"
 
-	loafergo "github.com/justcodes/loafer-go"
-	loaferAWS "github.com/justcodes/loafer-go/aws"
+	loafergo "github.com/justcodes/loafer-go/v2"
+	loaferAWS "github.com/justcodes/loafer-go/v2/aws"
 )
 
-// NewClient instantiates a new sqs client to be used on the sqs route
+// NewClient instantiates a new sns client to be used on the SNS producer
 func NewClient(ctx context.Context, cfg *loaferAWS.ClientConfig) (client loafergo.SNSClient, err error) {
 	cfg, err = loaferAWS.ValidateConfig(cfg)
 	if err != nil {

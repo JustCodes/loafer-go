@@ -2,13 +2,14 @@ package sns
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/aws/aws-sdk-go-v2/service/sns/types"
 
-	loafergo "github.com/justcodes/loafer-go"
+	loafergo "github.com/justcodes/loafer-go/v2"
 )
 
 // Producer represents loafer sns producer
@@ -29,6 +30,8 @@ type producer struct {
 	sns loafergo.SNSClient
 }
 
+// NewProducer creates a new Producer
+// It encapsulates the Amazon Simple Notification Service client
 func NewProducer(config *Config) (Producer, error) {
 	err := validateConfig(config)
 	if err != nil {
@@ -40,6 +43,11 @@ func NewProducer(config *Config) (Producer, error) {
 	}, nil
 }
 
+// Produce publishes a message to an Amazon SNS topic. The message is then sent to all
+// subscribers. When the topic is a FIFO topic, the message must also contain a group ID
+// and, when ID-based deduplication is used, a deduplication ID. An optional key-value
+// filter attribute can be specified so that the message can be filtered according to
+// a filter policy.
 func (p *producer) Produce(ctx context.Context, input *PublishInput) (string, error) {
 	if input == nil || reflect.DeepEqual(input, &PublishInput{}) {
 		return "", loafergo.ErrEmptyInput
@@ -64,7 +72,7 @@ func (p *producer) Produce(ctx context.Context, input *PublishInput) (string, er
 
 	result, err := p.sns.Publish(ctx, pubInp)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to publish message; topic: %s  error: %w", input.TopicARN, err)
 	}
 
 	return *result.MessageId, nil

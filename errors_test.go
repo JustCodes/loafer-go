@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	loafergo "github.com/justcodes/loafer-go"
+	loafergo "github.com/justcodes/loafer-go/v2"
 )
 
 func TestSQSError_Error(t *testing.T) {

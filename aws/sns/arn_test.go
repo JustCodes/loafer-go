@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/justcodes/loafer-go/aws/sns"
+	"github.com/justcodes/loafer-go/v2/aws/sns"
 )
 
 func TestBuildTopicARN(t *testing.T) {

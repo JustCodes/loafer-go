@@ -7,7 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 
-	loafergo "github.com/justcodes/loafer-go"
+	loafergo "github.com/justcodes/loafer-go/v2"
 )
 
 const (

@@ -6,6 +6,10 @@ echo "-------------------------------------Init Script"
 ENDPOINT="http://localhost:4566"
 REGION="us-east-1"
 PROFILE="test-profile"
+TOPIC_ONE="my_topic__test"
+TOPIC_TWO="my_topic__test2"
+QUEUE_ONE="example-1"
+QUEUE_TWO="example-2"
 
 echo "########### Creating profile ###########"
 
@@ -16,37 +20,17 @@ aws configure set region $REGION --profile $PROFILE
 echo "########### Listing profile ###########"
 aws configure list --profile $PROFILE
 
+echo "########### Creating SNS  topics ###########"
+aws --endpoint-url=$ENDPOINT sns create-topic --name $TOPIC_ONE --profile $PROFILE --region $REGION --output table | cat
+
+aws --endpoint-url=$ENDPOINT sns create-topic --name $TOPIC_TWO --profile $PROFILE --region $REGION --output table | cat
+
 echo "########### Creating SQS queues ###########"
-EXAMPLE1_QUEUE_URL=$(aws --endpoint-url=$ENDPOINT sqs create-queue --queue-name example-1 --profile $PROFILE --region $REGION | jq -r '.QueueUrl')
-EXAMPLE2_QUEUE_URL=$(aws --endpoint-url=$ENDPOINT sqs create-queue --queue-name example-2 --profile $PROFILE --region $REGION | jq -r '.QueueUrl')
+aws --endpoint-url=$ENDPOINT sqs create-queue --queue-name example-1 --profile $PROFILE --region $REGION --output table | cat
 
-echo "########### Send message to the queues ########### Creating SQS queues ###########"
+aws --endpoint-url=$ENDPOINT sqs create-queue --queue-name example-2 --profile $PROFILE --region $REGION --output table | cat
 
-send-message-to-sqs() {
-	endPoint=$1
-	key=$2
-	queue=$3
+echo "########### Subscribing the topics"
+aws --endpoint-url=$ENDPOINT sns subscribe --topic-arn arn:aws:sns:us-east-1:000000000000:$TOPIC_ONE --protocol sqs --notification-endpoint arn:aws:sqs:us-east-1:000000000000:$QUEUE_ONE --profile $PROFILE --region $REGION --output table | cat
 
-	if [ -z "$endPoint" ] || [ -z "$key" ] || [ -z "$queue" ]; then
-		echo "Queue URL, key and queue are required"
-		return
-	fi
-
-	aws --endpoint-url=$ENDPOINT sqs send-message --queue-url "$endPoint" --message-body "{\"message\": \"Hello world! $queue $key\"}" --delay-seconds 0 --profile $PROFILE --region $REGION
-}
-
-for i in {1..20}
-do
-   	# do whatever on $i
-	echo "Key : $i"
-	echo "sending message to sqs queue: $EXAMPLE1_QUEUE_URL"
-	send-message-to-sqs "$EXAMPLE1_QUEUE_URL" "$i" "example-1"
-done
-
-for i in {1..20}
-do
-   	# do whatever on $i
-	echo "Key : $i"
-	echo "sending message to sqs queue: $EXAMPLE2_QUEUE_URL"
-	send-message-to-sqs "$EXAMPLE2_QUEUE_URL" "$i" "example-2"
-done
+aws --endpoint-url=$ENDPOINT sns subscribe --topic-arn arn:aws:sns:us-east-1:000000000000:$TOPIC_TWO --protocol sqs --notification-endpoint arn:aws:sqs:us-east-1:000000000000:$QUEUE_TWO --profile $PROFILE --region $REGION --output table | cat

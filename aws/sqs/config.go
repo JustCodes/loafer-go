@@ -3,7 +3,7 @@ package sqs
 import (
 	"strconv"
 
-	loafergo "github.com/justcodes/loafer-go"
+	loafergo "github.com/justcodes/loafer-go/v2"
 )
 
 // A Config provides service configuration for SQS routes.

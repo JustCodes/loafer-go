@@ -1,7 +1,7 @@
 package sns
 
 import (
-	loafergo "github.com/justcodes/loafer-go"
+	loafergo "github.com/justcodes/loafer-go/v2"
 )
 
 // A Config provides service configuration for SNS producer.

@@ -10,8 +10,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 
-	loafergo "github.com/justcodes/loafer-go"
-	"github.com/justcodes/loafer-go/fake"
+	loafergo "github.com/justcodes/loafer-go/v2"
+	"github.com/justcodes/loafer-go/v2/fake"
 )
 
 func stubHandler(ctx context.Context, m loafergo.Message) error {

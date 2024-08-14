@@ -4,16 +4,16 @@ import (
 	"fmt"
 )
 
-// SQSError defines the error handler for the loafergo package. SQSError satisfies the error interface and can be
+// Error defines the error handler for the loafergo package. Error satisfies the error interface and can be
 // used safely with other error handlers
-type SQSError struct {
+type Error struct {
 	contextErr error
 	Err        string `json:"err"`
 }
 
 // Error is used for implementing the error interface, and for creating
 // a proper error string
-func (e *SQSError) Error() string {
+func (e *Error) Error() string {
 	if e.contextErr != nil {
 		return fmt.Sprintf("%s: %s", e.Err, e.contextErr.Error())
 	}
@@ -22,47 +22,47 @@ func (e *SQSError) Error() string {
 }
 
 // Context is used for creating a new instance of the error with the contextual error attached
-func (e *SQSError) Context(err error) *SQSError {
-	ctxErr := new(SQSError)
+func (e *Error) Context(err error) *Error {
+	ctxErr := new(Error)
 	*ctxErr = *e
 	ctxErr.contextErr = err
 
 	return ctxErr
 }
 
-// newSQSErr creates a new SQS Error
-func newSQSErr(msg string) *SQSError {
-	e := new(SQSError)
+// newError creates a new SQS Error
+func newError(msg string) *Error {
+	e := new(Error)
 	e.Err = msg
 	return e
 }
 
 // ErrInvalidCreds invalid credentials
-var ErrInvalidCreds = newSQSErr("invalid aws credentials")
+var ErrInvalidCreds = newError("invalid aws credentials")
 
 // ErrMarshal unable to marshal request
-var ErrMarshal = newSQSErr("unable to marshal request")
+var ErrMarshal = newError("unable to marshal request")
 
 // ErrNoRoute message received without a route
-var ErrNoRoute = newSQSErr("message received without a route")
+var ErrNoRoute = newError("message received without a route")
 
 // ErrGetMessage fires when a request to retrieve messages from sqs fails
-var ErrGetMessage = newSQSErr("unable to retrieve message")
+var ErrGetMessage = newError("unable to retrieve message")
 
 // ErrMessageProcessing occurs when a message has exceeded the consumption time limit set by aws SQS
-var ErrMessageProcessing = newSQSErr("processing time exceeding limit")
+var ErrMessageProcessing = newError("processing time exceeding limit")
 
 // ErrNoSQSClient occurs when the sqs client is nil
-var ErrNoSQSClient = newSQSErr("sqs client is nil")
+var ErrNoSQSClient = newError("sqs client is nil")
 
 // ErrNoHandler occurs when the handler is nil
-var ErrNoHandler = newSQSErr("handler is nil")
+var ErrNoHandler = newError("handler is nil")
 
 // ErrEmptyParam occurs when the required parameter is missing
-var ErrEmptyParam = newSQSErr("required parameter is missing")
+var ErrEmptyParam = newError("required parameter is missing")
 
 // ErrEmptyRequiredField occurs when the required field is missing
-var ErrEmptyRequiredField = newSQSErr("required field is missing")
+var ErrEmptyRequiredField = newError("required field is missing")
 
 // ErrEmptyInput occurs when the producer received an empty or nil input
-var ErrEmptyInput = newSQSErr("input must be filled")
+var ErrEmptyInput = newError("input must be filled")

@@ -7,8 +7,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 
-	loafergo "github.com/justcodes/loafer-go"
-	loaferAWS "github.com/justcodes/loafer-go/aws"
+	loafergo "github.com/justcodes/loafer-go/v2"
+	loaferAWS "github.com/justcodes/loafer-go/v2/aws"
 )
 
 // NewClient instantiates a new sqs client to be used on the sqs route

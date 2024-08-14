@@ -7,9 +7,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/stretchr/testify/assert"
 
-	loafergo "github.com/justcodes/loafer-go"
-	loaferAWS "github.com/justcodes/loafer-go/aws"
-	"github.com/justcodes/loafer-go/aws/sqs"
+	loafergo "github.com/justcodes/loafer-go/v2"
+	loaferAWS "github.com/justcodes/loafer-go/v2/aws"
+	"github.com/justcodes/loafer-go/v2/aws/sqs"
 )
 
 func TestSQSClientLoadConfig(t *testing.T) {

@@ -1,4 +1,4 @@
-module github.com/justcodes/loafer-go
+module github.com/justcodes/loafer-go/v2
 
 go 1.22
 

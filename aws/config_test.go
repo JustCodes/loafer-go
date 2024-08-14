@@ -1,12 +1,15 @@
 package aws_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	loafergo "github.com/justcodes/loafer-go"
-	"github.com/justcodes/loafer-go/aws"
+	awsAWS "github.com/aws/aws-sdk-go-v2/aws"
+
+	loafergo "github.com/justcodes/loafer-go/v2"
+	"github.com/justcodes/loafer-go/v2/aws"
 )
 
 func TestDataType_String(t *testing.T) {
@@ -151,4 +154,40 @@ func TestSQSClientValidateConfig(t *testing.T) {
 			assert.Equal(t, tc.expected, got)
 		})
 	}
+}
+
+func TestLoadAWSConfig(t *testing.T) {
+	ctx := context.Background()
+	t.Run("Success", func(t *testing.T) {
+		cfg := &aws.ClientConfig{
+			Config: &aws.Config{
+				Key:      "key",
+				Secret:   "secret",
+				Region:   "us-east-1",
+				Profile:  "",
+				Hostname: "",
+			},
+			RetryCount: 0,
+		}
+
+		got, err := aws.LoadAWSConfig(ctx, cfg, &awsAWS.CredentialsCache{})
+		assert.Nil(t, err)
+		assert.NotNil(t, got)
+	})
+
+	t.Run("Error", func(t *testing.T) {
+		cfg := &aws.ClientConfig{
+			Config: &aws.Config{
+				Key:      "key",
+				Secret:   "secret",
+				Region:   "us-east-1",
+				Profile:  "profile",
+				Hostname: "",
+			},
+			RetryCount: 0,
+		}
+
+		_, err := aws.LoadAWSConfig(ctx, cfg, &awsAWS.CredentialsCache{})
+		assert.NotNil(t, err)
+	})
 }

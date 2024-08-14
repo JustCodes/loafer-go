@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	loafergo "github.com/justcodes/loafer-go"
-	"github.com/justcodes/loafer-go/fake"
+	loafergo "github.com/justcodes/loafer-go/v2"
+	"github.com/justcodes/loafer-go/v2/fake"
 )
 
 func createTestConfig() *loafergo.Config {
