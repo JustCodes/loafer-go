@@ -13,20 +13,35 @@ import (
 )
 
 func TestSQSClientLoadConfig(t *testing.T) {
-	acc := &aws.CredentialsCache{}
-	cfg := &loaferAWS.ClientConfig{
-		Config: &loaferAWS.Config{
-			Key:      "dummy",
-			Secret:   "dummy",
-			Region:   "us-east-1",
-			Hostname: "",
-		},
-	}
-	ctx := context.Background()
+	t.Run("LoadAWSConfig with credentials", func(t *testing.T) {
+		acc := &aws.CredentialsCache{}
+		cfg := &loaferAWS.ClientConfig{
+			Config: &loaferAWS.Config{
+				Key:      "dummy",
+				Secret:   "dummy",
+				Region:   "us-east-1",
+				Hostname: "",
+			},
+		}
+		ctx := context.Background()
 
-	got, err := loaferAWS.LoadAWSConfig(ctx, cfg, acc)
-	assert.NoError(t, err)
-	assert.NotNil(t, got)
+		got, err := loaferAWS.LoadAWSConfig(ctx, cfg, acc)
+		assert.NoError(t, err)
+		assert.NotNil(t, got)
+	})
+
+	t.Run("LoadAWSConfig without credentials", func(t *testing.T) {
+		cfg := &loaferAWS.ClientConfig{
+			Config: &loaferAWS.Config{
+				Region: "us-east-1",
+			},
+		}
+		ctx := context.Background()
+
+		got, err := loaferAWS.LoadAWSConfig(ctx, cfg, nil)
+		assert.NoError(t, err)
+		assert.NotNil(t, got)
+	})
 }
 
 func TestNewProducer_ValidateConfig(t *testing.T) {
@@ -48,34 +63,6 @@ func TestNewProducer_ValidateConfig(t *testing.T) {
 				RetryCount: 0,
 			},
 			expectedErr: loafergo.ErrEmptyParam,
-		},
-		{
-			name: "Empty key",
-			cfg: &loaferAWS.ClientConfig{
-				Config: &loaferAWS.Config{
-					Key:        "",
-					Secret:     "secret",
-					Region:     "us-east-1",
-					Profile:    "profile",
-					Hostname:   "hostname",
-					Attributes: nil,
-				},
-			},
-			expectedErr: loafergo.ErrEmptyRequiredField,
-		},
-		{
-			name: "Empty Secret",
-			cfg: &loaferAWS.ClientConfig{
-				Config: &loaferAWS.Config{
-					Key:        "key",
-					Secret:     "",
-					Region:     "us-east-1",
-					Profile:    "profile",
-					Hostname:   "hostname",
-					Attributes: nil,
-				},
-			},
-			expectedErr: loafergo.ErrEmptyRequiredField,
 		},
 		{
 			name: "Empty Region",
