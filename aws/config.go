@@ -105,22 +105,11 @@ func ValidateConfig(cfg *ClientConfig) (*ClientConfig, error) {
 	return cfg, nil
 }
 
-// WithCredentialsProvider sets the credentials provider if provided
-func WithCredentialsProvider(c *aws.CredentialsCache) func(*config.LoadOptions) error {
-	return func(lo *config.LoadOptions) error {
-		if c != nil {
-			lo.Credentials = c
-		}
-		return nil
-	}
-}
-
 // LoadAWSConfig loads aws config
 func LoadAWSConfig(ctx context.Context, cfg *ClientConfig, c *aws.CredentialsCache) (aCfg aws.Config, err error) {
 	conf := []func(*config.LoadOptions) error{
 		config.WithRegion(cfg.Config.Region),
 		config.WithRetryMaxAttempts(cfg.RetryCount),
-		WithCredentialsProvider(c),
 	}
 
 	if cfg.Config.Profile != "" {
