@@ -108,7 +108,9 @@ func ValidateConfig(cfg *ClientConfig) (*ClientConfig, error) {
 // WithCredentialsProvider sets the credentials provider if provided
 func WithCredentialsProvider(c *aws.CredentialsCache) func(*config.LoadOptions) error {
 	return func(lo *config.LoadOptions) error {
-		lo.Credentials = c
+		if c != nil {
+			lo.Credentials = c
+		}
 		return nil
 	}
 }
