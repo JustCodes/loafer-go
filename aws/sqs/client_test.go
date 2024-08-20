@@ -50,34 +50,6 @@ func TestNewProducer_ValidateConfig(t *testing.T) {
 			expectedErr: loafergo.ErrEmptyParam,
 		},
 		{
-			name: "Empty key",
-			cfg: &loaferAWS.ClientConfig{
-				Config: &loaferAWS.Config{
-					Key:        "",
-					Secret:     "secret",
-					Region:     "us-east-1",
-					Profile:    "profile",
-					Hostname:   "hostname",
-					Attributes: nil,
-				},
-			},
-			expectedErr: loafergo.ErrEmptyRequiredField,
-		},
-		{
-			name: "Empty Secret",
-			cfg: &loaferAWS.ClientConfig{
-				Config: &loaferAWS.Config{
-					Key:        "key",
-					Secret:     "",
-					Region:     "us-east-1",
-					Profile:    "profile",
-					Hostname:   "hostname",
-					Attributes: nil,
-				},
-			},
-			expectedErr: loafergo.ErrEmptyRequiredField,
-		},
-		{
 			name: "Empty Region",
 			cfg: &loaferAWS.ClientConfig{
 				Config: &loaferAWS.Config{

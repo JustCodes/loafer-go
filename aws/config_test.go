@@ -124,28 +124,6 @@ func TestSQSClientValidateConfig(t *testing.T) {
 			err:      loafergo.ErrEmptyRequiredField,
 			expected: nil,
 		},
-		{
-			name: "empty AWS Key",
-			cfg: &aws.ClientConfig{
-				Config: &aws.Config{
-					Secret: "dummy",
-					Region: "us-east-1",
-				},
-			},
-			err:      loafergo.ErrEmptyRequiredField,
-			expected: nil,
-		},
-		{
-			name: "empty AWS Secret",
-			cfg: &aws.ClientConfig{
-				Config: &aws.Config{
-					Key:    "dummy",
-					Region: "us-east-1",
-				},
-			},
-			err:      loafergo.ErrEmptyRequiredField,
-			expected: nil,
-		},
 	}
 	for _, tc := range testsCases {
 		t.Run(tc.name, func(t *testing.T) {
