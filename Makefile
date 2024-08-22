@@ -36,4 +36,3 @@ clean:
 test:
 	@$(MAKE) -s clean
 	@go test -timeout 1m -race -covermode=atomic -coverprofile=tmp.out ./... && cat tmp.out | grep -Ev 'example|fake' > geral.out  && go tool cover -func=geral.out
-#	@go test -timeout 1m -race -covermode=atomic -coverpkg=github.com/justcodes/loafer-go,github.com/justcodes/loafer-go/sqs -coverprofile=geral.out ./...  && go tool cover -func=geral.out
