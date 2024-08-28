@@ -65,6 +65,8 @@ func (m *Manager) processRoute(ctx context.Context, r Router) {
 		go m.worker(ctx, r, message)
 	}
 
+	m.config.Logger.Log("\nconsumers is ready to consume messages...")
+
 	for {
 		if errors.Is(ctx.Err(), context.Canceled) {
 			m.config.Logger.Log("context canceled process route stopped")

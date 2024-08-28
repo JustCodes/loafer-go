@@ -105,6 +105,13 @@ func ValidateConfig(cfg *ClientConfig) (*ClientConfig, error) {
 	return cfg, nil
 }
 
+func withCredentialsProvider(c *aws.CredentialsCache) func(*config.LoadOptions) error {
+	return func(lo *config.LoadOptions) error {
+		lo.Credentials = c
+		return nil
+	}
+}
+
 // LoadAWSConfig loads aws config
 func LoadAWSConfig(ctx context.Context, cfg *ClientConfig, c *aws.CredentialsCache) (aCfg aws.Config, err error) {
 	conf := []func(*config.LoadOptions) error{
@@ -114,6 +121,10 @@ func LoadAWSConfig(ctx context.Context, cfg *ClientConfig, c *aws.CredentialsCac
 
 	if cfg.Config.Profile != "" {
 		conf = append(conf, config.WithSharedConfigProfile(cfg.Config.Profile))
+	}
+
+	if c != nil {
+		conf = append(conf, withCredentialsProvider(c))
 	}
 
 	aCfg, err = config.LoadDefaultConfig(
