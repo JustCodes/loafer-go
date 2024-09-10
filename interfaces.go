@@ -2,6 +2,7 @@ package loafergo
 
 import (
 	"context"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
@@ -29,18 +30,22 @@ type SQSClient interface {
 
 // Message represents the message interface methods
 type Message interface {
-	// Decode will unmarshal the message into a supplied output using json
+	// Decode will unmarshal the body message into a supplied output using json
 	Decode(out interface{}) error
 	// Attribute will return the custom attribute that was sent throughout the request.
 	Attribute(key string) string
 	// Metadata will return the metadata that was sent throughout the request.
 	Metadata() map[string]string
-	// Identifier will return a message identifier
+	// Identifier will return an identifier associated with the message ReceiptHandle.
 	Identifier() string
 	// Dispatch used to dispatch message if necessary
 	Dispatch()
 	// Body used to get the message Body
 	Body() []byte
+	// Message returns the body message
+	Message() string
+	// TimeStamp returns the message timestamp
+	TimeStamp() time.Time
 }
 
 // SNSClient represents the aws sns client methods

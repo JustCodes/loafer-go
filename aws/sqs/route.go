@@ -159,7 +159,7 @@ func (r *route) changeMessageVisibility(ctx context.Context, m *message) {
 				ctx,
 				&sqs.ChangeMessageVisibilityInput{
 					QueueUrl:          &r.queueURL,
-					ReceiptHandle:     m.ReceiptHandle,
+					ReceiptHandle:     m.originalMessage.ReceiptHandle,
 					VisibilityTimeout: extension,
 				},
 			)

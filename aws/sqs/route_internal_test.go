@@ -23,7 +23,7 @@ func TestRouteChangeMessageVisibility(t *testing.T) {
 	mockSQSClient := &fake.SQSClient{}
 	m := &message{
 		dispatched: make(chan bool, 1),
-		Message: types.Message{
+		originalMessage: types.Message{
 			Body:          aws.String("body"),
 			ReceiptHandle: aws.String("receipt-handler"),
 		},
