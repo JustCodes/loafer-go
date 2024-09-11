@@ -136,3 +136,50 @@ func TestMessage_TimeStamp(t *testing.T) {
 		assert.Equal(t, want, got)
 	})
 }
+
+func TestMessage_MessageDecode(t *testing.T) {
+	t.Run("With body", func(t *testing.T) {
+		type data struct {
+			Message string `json:"message"`
+			Topic   string `json:"topic"`
+			ID      int    `json:"id"`
+		}
+		d := new(data)
+		msg := newMessage(types.Message{
+			Body: &mockBody,
+		})
+		err := msg.DecodeMessage(d)
+		assert.NoError(t, err)
+		assert.Equal(t, "Hello world!", d.Message)
+		assert.Equal(t, "my_topic__test2", d.Topic)
+		assert.Equal(t, 19, d.ID)
+	})
+
+	t.Run("No body", func(t *testing.T) {
+		type data struct {
+			Message string `json:"message"`
+			Topic   string `json:"topic"`
+			ID      int    `json:"id"`
+		}
+		d := new(data)
+		msg := newMessage(types.Message{})
+		err := msg.DecodeMessage(d)
+		assert.Error(t, err)
+		assert.ErrorContains(t, err, "unexpected end of JSON input")
+	})
+
+	t.Run("Message has no expected contract", func(t *testing.T) {
+		type data struct {
+			Message string `json:"message"`
+			Topic   string `json:"topic"`
+			ID      int    `json:"id"`
+		}
+		d := new(data)
+		msg := newMessage(types.Message{
+			Body: aws.String(`{"Message": "{\"foo\": \"bar\"}"}`),
+		})
+		err := msg.DecodeMessage(d)
+		assert.NoError(t, err)
+		assert.Equal(t, new(data), d)
+	})
+}

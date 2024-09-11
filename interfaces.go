@@ -46,6 +46,8 @@ type Message interface {
 	Message() string
 	// TimeStamp returns the message timestamp
 	TimeStamp() time.Time
+	// DecodeMessage will unmarshal the message into a supplied output using json
+	DecodeMessage(out any) error
 }
 
 // SNSClient represents the aws sns client methods

@@ -74,6 +74,11 @@ func (m *message) Message() string {
 	return m.message.Message
 }
 
+// DecodeMessage will unmarshal the message into a supplied output using json
+func (m *message) DecodeMessage(out any) error {
+	return json.Unmarshal([]byte(m.message.Message), &out)
+}
+
 // TimeStamp returns the message timestamp
 func (m *message) TimeStamp() time.Time {
 	return m.message.Timestamp
