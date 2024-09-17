@@ -111,10 +111,11 @@ func (suite *routeSuite) TestGetMessages() {
 		err := suite.route.Configure(context.Background())
 		suite.NoError(err)
 		param := &awsSqs.ReceiveMessageInput{
-			QueueUrl:              aws.String("example-1-url"),
-			WaitTimeSeconds:       8,
-			MaxNumberOfMessages:   15,
-			MessageAttributeNames: []string{"All"},
+			QueueUrl:                    aws.String("example-1-url"),
+			WaitTimeSeconds:             8,
+			MaxNumberOfMessages:         15,
+			MessageAttributeNames:       []string{"All"},
+			MessageSystemAttributeNames: []types.MessageSystemAttributeName{types.MessageSystemAttributeNameAll},
 		}
 		suite.sqsClient.On("ReceiveMessage", context.Background(), param).
 			Return(&awsSqs.ReceiveMessageOutput{
@@ -140,10 +141,11 @@ func (suite *routeSuite) TestGetMessages() {
 		err := suite.route.Configure(context.Background())
 		suite.NoError(err)
 		param := &awsSqs.ReceiveMessageInput{
-			QueueUrl:              aws.String("example-1-url"),
-			WaitTimeSeconds:       8,
-			MaxNumberOfMessages:   15,
-			MessageAttributeNames: []string{"All"},
+			QueueUrl:                    aws.String("example-1-url"),
+			WaitTimeSeconds:             8,
+			MaxNumberOfMessages:         15,
+			MessageAttributeNames:       []string{"All"},
+			MessageSystemAttributeNames: []types.MessageSystemAttributeName{types.MessageSystemAttributeNameAll},
 		}
 		suite.sqsClient.On("ReceiveMessage", context.Background(), param).
 			Return(nil, fmt.Errorf("got error")).
@@ -167,10 +169,11 @@ func (suite *routeSuite) TestCommit() {
 		err := suite.route.Configure(context.Background())
 		suite.NoError(err)
 		param := &awsSqs.ReceiveMessageInput{
-			QueueUrl:              aws.String("example-1-url"),
-			WaitTimeSeconds:       8,
-			MaxNumberOfMessages:   15,
-			MessageAttributeNames: []string{"All"},
+			QueueUrl:                    aws.String("example-1-url"),
+			WaitTimeSeconds:             8,
+			MaxNumberOfMessages:         15,
+			MessageAttributeNames:       []string{"All"},
+			MessageSystemAttributeNames: []types.MessageSystemAttributeName{types.MessageSystemAttributeNameAll},
 		}
 		suite.sqsClient.On("ReceiveMessage", ctx, param).
 			Return(&awsSqs.ReceiveMessageOutput{
@@ -206,10 +209,11 @@ func (suite *routeSuite) TestCommit() {
 		err := suite.route.Configure(context.Background())
 		suite.NoError(err)
 		param := &awsSqs.ReceiveMessageInput{
-			QueueUrl:              aws.String("example-1-url"),
-			WaitTimeSeconds:       8,
-			MaxNumberOfMessages:   15,
-			MessageAttributeNames: []string{"All"},
+			QueueUrl:                    aws.String("example-1-url"),
+			WaitTimeSeconds:             8,
+			MaxNumberOfMessages:         15,
+			MessageAttributeNames:       []string{"All"},
+			MessageSystemAttributeNames: []types.MessageSystemAttributeName{types.MessageSystemAttributeNameAll},
 		}
 		suite.sqsClient.On("ReceiveMessage", ctx, param).
 			Return(&awsSqs.ReceiveMessageOutput{
@@ -248,10 +252,11 @@ func (suite *routeSuite) TestHandlerMessage() {
 		err := suite.route.Configure(context.Background())
 		suite.NoError(err)
 		param := &awsSqs.ReceiveMessageInput{
-			QueueUrl:              aws.String("example-1-url"),
-			WaitTimeSeconds:       8,
-			MaxNumberOfMessages:   15,
-			MessageAttributeNames: []string{"All"},
+			QueueUrl:                    aws.String("example-1-url"),
+			WaitTimeSeconds:             8,
+			MaxNumberOfMessages:         15,
+			MessageAttributeNames:       []string{"All"},
+			MessageSystemAttributeNames: []types.MessageSystemAttributeName{types.MessageSystemAttributeNameAll},
 		}
 		suite.sqsClient.On("ReceiveMessage", ctx, param).
 			Return(&awsSqs.ReceiveMessageOutput{
@@ -279,10 +284,11 @@ func (suite *routeSuite) TestHandlerMessage() {
 		err := suite.route.Configure(context.Background())
 		suite.NoError(err)
 		param := &awsSqs.ReceiveMessageInput{
-			QueueUrl:              aws.String("example-1-url"),
-			WaitTimeSeconds:       8,
-			MaxNumberOfMessages:   15,
-			MessageAttributeNames: []string{"All"},
+			QueueUrl:                    aws.String("example-1-url"),
+			WaitTimeSeconds:             8,
+			MaxNumberOfMessages:         15,
+			MessageAttributeNames:       []string{"All"},
+			MessageSystemAttributeNames: []types.MessageSystemAttributeName{types.MessageSystemAttributeNameAll},
 		}
 		suite.sqsClient.On("ReceiveMessage", ctx, param).
 			Return(&awsSqs.ReceiveMessageOutput{

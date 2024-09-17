@@ -183,3 +183,38 @@ func TestMessage_MessageDecode(t *testing.T) {
 		assert.Equal(t, new(data), d)
 	})
 }
+
+func TestMessage_SystemAttributes(t *testing.T) {
+	msg := newMessage(types.Message{Body: &mockBody, Attributes: map[string]string{
+		"MessageGroupId": "xpto",
+	}})
+	got := msg.SystemAttributes()
+	want := map[string]string{
+		"MessageGroupId": "xpto",
+	}
+	assert.Equal(t, want, got)
+}
+
+func TestMessage_SystemAttributeByKey(t *testing.T) {
+	t.Run("should return system attribute value", func(t *testing.T) {
+		msg := newMessage(types.Message{
+			Body: &mockBody,
+			Attributes: map[string]string{
+				"MessageGroupId": "xpto",
+			},
+		})
+		attr := msg.SystemAttributeByKey("MessageGroupId")
+		assert.Equal(t, "xpto", attr)
+	})
+
+	t.Run("should return empty system attribute value", func(t *testing.T) {
+		msg := newMessage(types.Message{
+			Body: aws.String("body"),
+			Attributes: map[string]string{
+				"MessageGroupId": "xpto",
+			},
+		})
+		attr := msg.Attribute("stub")
+		assert.Equal(t, "", attr)
+	})
+}

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 
 	loafergo "github.com/justcodes/loafer-go/v2"
 )
@@ -86,10 +87,11 @@ func (r *route) GetMessages(ctx context.Context) (messages []loafergo.Message, e
 	output, err := r.sqs.ReceiveMessage(
 		ctx,
 		&sqs.ReceiveMessageInput{
-			QueueUrl:              &r.queueURL,
-			WaitTimeSeconds:       r.waitTimeSeconds,
-			MaxNumberOfMessages:   r.maxMessages,
-			MessageAttributeNames: []string{all},
+			QueueUrl:                    &r.queueURL,
+			WaitTimeSeconds:             r.waitTimeSeconds,
+			MaxNumberOfMessages:         r.maxMessages,
+			MessageAttributeNames:       []string{all},
+			MessageSystemAttributeNames: []types.MessageSystemAttributeName{types.MessageSystemAttributeNameAll},
 		},
 	)
 	if err != nil {

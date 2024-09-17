@@ -64,6 +64,21 @@ func (m *message) Attribute(key string) string {
 	return id.Value
 }
 
+// SystemAttributeByKey will return the system attributes by key.
+func (m *message) SystemAttributeByKey(key string) string {
+	value, ok := m.originalMessage.Attributes[key]
+	if !ok {
+		return ""
+	}
+
+	return value
+}
+
+// SystemAttributes will return the system attributes.
+func (m *message) SystemAttributes() map[string]string {
+	return m.originalMessage.Attributes
+}
+
 // Identifier An identifier associated with the message ReceiptHandle.
 func (m *message) Identifier() string {
 	return *m.originalMessage.ReceiptHandle
