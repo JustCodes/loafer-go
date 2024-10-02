@@ -34,6 +34,8 @@ type Message interface {
 	Decode(out interface{}) error
 	// Attribute will return the custom attribute that was sent throughout the request.
 	Attribute(key string) string
+	// Attributes will return the custom attributes that were sent with the request.
+	Attributes() map[string]string
 	// SystemAttributeByKey will return the system attributes by key.
 	SystemAttributeByKey(key string) string
 	// SystemAttributes will return the system attributes.

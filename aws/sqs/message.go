@@ -64,6 +64,17 @@ func (m *message) Attribute(key string) string {
 	return id.Value
 }
 
+// Attributes will return the custom attributes that were sent with the request.
+func (m *message) Attributes() map[string]string {
+	a := map[string]string{}
+
+	for k, v := range m.message.MessageAttributes {
+		a[k] = v.Value
+	}
+
+	return a
+}
+
 // SystemAttributeByKey will return the system attributes by key.
 func (m *message) SystemAttributeByKey(key string) string {
 	value, ok := m.originalMessage.Attributes[key]
