@@ -2,14 +2,14 @@ name: Go CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
     paths:
-      - '**.go'
+      - "**.go"
       - go.mod
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
     paths:
-      - '**.go'
+      - "**.go"
       - go.mod
 
 jobs:
@@ -21,7 +21,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.22'
+          go-version: "1.23"
       - name: Test
         run: go test -timeout 1m -race -covermode=atomic -coverprofile=tmp.out ./... && cat tmp.out | grep -Ev 'example|fake' > geral.out  && go tool cover -func=geral.out
 
@@ -33,7 +33,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
         with:
-          go-version: '1.22'
+          go-version: "1.23"
           cache: false
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
