@@ -119,7 +119,9 @@ func (m *message) Dispatch() {
 	m.dispatched <- true
 }
 
-// Backoff sets the visibilityTimeout of the message, ignoring the visibilityTimeout defined in the route and the default visibilityTimeout of the queue
+// Backoff sets the visibilityTimeout of the message,
+// ignoring the visibilityTimeout defined in the route and
+// the default visibilityTimeout of the queue
 func (m *message) Backoff(delay time.Duration) {
 	m.backoffChannel <- delay
 }

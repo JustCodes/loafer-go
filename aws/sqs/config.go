@@ -48,8 +48,10 @@ type LoadRouteConfigFunc func(config *RouteConfig)
 // the last call overrides the previous call values.
 //
 // The minimum value is 11 seconds (defaultVisibilityTimeoutControl + 1)
-// This value is used to extend the visibility timeout of the message, in order to avoid others consumers to consume this message while it is being processed.
-// It will extend it periodically based on the visibility timeout value provided and at each iteration the sleep time will be doubled.
+// This value is used to extend the visibility timeout of the message,
+// in order to avoid others consumers to consume this message while it is being processed.
+// It will extend it periodically based on the visibility timeout value provided
+// and at each iteration the sleep time will be doubled.
 //
 // For example:
 //
@@ -73,7 +75,7 @@ type LoadRouteConfigFunc func(config *RouteConfig)
 //
 //   - handler finishes processing the message
 //
-//   - error handling the message? Message does not get deleted and the queue visibility timeout (60s) is used (default aws sqs behaviour)
+//   - error handling the message? Message does not get deleted and the queue visibility timeout (60s) is used (default aws sqs behavior)
 //
 //   - success handling the message? Message gets deleted
 //

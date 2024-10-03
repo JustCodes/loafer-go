@@ -27,6 +27,8 @@ type route struct {
 	workerPoolSize    int32
 }
 
+// DoneCtxKey is the context key for the done channel that is optionally passed to the router
+// and used inside the doChangeVisibilityTimeout function to signal that the method finished its execution
 type DoneCtxKey struct{}
 
 // NewRoute creates a new Route
