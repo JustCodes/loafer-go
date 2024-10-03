@@ -7,7 +7,6 @@ Lib for Go with:
 - Async pooling of AWS/SQS messages
 - Producer of AWS/SNS messages
 
-
 ### Install
 
 ---
@@ -24,12 +23,11 @@ Golang import:
 import "github.com/justcodes/loafer-go/v2"
 ```
 
-
 ### Usage
 
 ---
 
-```go 
+```go
 package main
 
 import (
@@ -115,6 +113,11 @@ func main() {
 			Handler:   handler2,
 			QueueName: queueTwo,
 		}),
+		sqs.NewRoute(&sqs.Config{
+			SQSClient: sqsClient,
+			Handler:   handler3,
+			QueueName: queueTwo,
+		}),
 	}
 
 	c := &loafergo.Config{}
@@ -135,6 +138,12 @@ func handler1(ctx context.Context, m loafergo.Message) error {
 
 func handler2(ctx context.Context, m loafergo.Message) error {
 	fmt.Printf("Message received handler2: %s\n ", string(m.Body()))
+	return nil
+}
+
+func handler2(ctx context.Context, m loafergo.Message) error {
+	fmt.Printf("Message received handler2: %s\n ", string(m.Body()))
+	m.Backoff(2 * time.Hour) // visibility timeout will be extended in 2h
 	return nil
 }
 
@@ -168,10 +177,10 @@ func panicRecover() {
 ```
 
 ### TODO
+
 - [x] Add more tests
 - [ ] Add support for sending messages to SQS
 - [x] Add support for sending messages to SNS
-
 
 ### Acknowledgments
 
