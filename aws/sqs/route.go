@@ -181,6 +181,16 @@ func (r *route) changeMessageVisibility(ctx context.Context, m *message) {
 }
 
 func (r *route) doChangeVisibilityTimeout(ctx context.Context, m *message, timeout int32) {
+	if timeout <= 0 {
+		timeout = 0
+	}
+
+	//https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_ChangeMessageVisibility.html
+	maxLimit := int32((12 * time.Hour).Seconds())
+	if timeout > maxLimit {
+		timeout = maxLimit
+	}
+
 	_, _ = r.sqs.ChangeMessageVisibility(
 		ctx,
 		&sqs.ChangeMessageVisibilityInput{
