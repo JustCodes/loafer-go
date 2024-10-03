@@ -168,7 +168,6 @@ func (r *route) changeMessageVisibility(ctx context.Context, m *message) {
 
 		select {
 		case d := <-m.backoffChannel:
-			m.backedOff = true
 			r.doChangeVisibilityTimeout(ctx, m, int32(d.Seconds()))
 			return
 		case <-m.dispatched:
