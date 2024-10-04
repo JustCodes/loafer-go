@@ -42,13 +42,18 @@ func TestRouteChangeMessageVisibility(t *testing.T) {
 			workerPoolSize:    1,
 		}
 
-		input := &sqs.ChangeMessageVisibilityInput{
+		mockSQSClient.On("ChangeMessageVisibility", context.Background(), &sqs.ChangeMessageVisibilityInput{
+			QueueUrl:          aws.String("queue-url"),
+			ReceiptHandle:     aws.String("receipt-handler"),
+			VisibilityTimeout: 11,
+		}).
+			Return(&sqs.ChangeMessageVisibilityOutput{}, nil)
+
+		mockSQSClient.On("ChangeMessageVisibility", context.Background(), &sqs.ChangeMessageVisibilityInput{
 			QueueUrl:          aws.String("queue-url"),
 			ReceiptHandle:     aws.String("receipt-handler"),
 			VisibilityTimeout: 22,
-		}
-
-		mockSQSClient.On("ChangeMessageVisibility", context.Background(), input).
+		}).
 			Return(&sqs.ChangeMessageVisibilityOutput{}, nil)
 
 		ctx := context.Background()

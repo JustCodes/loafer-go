@@ -27,6 +27,10 @@ type route struct {
 	workerPoolSize    int32
 }
 
+// DoneCtxKey is the context key for the done channel that is optionally passed to the router
+// and used inside the doChangeVisibilityTimeout function to signal that the method finished its execution
+type DoneCtxKey struct{}
+
 // NewRoute creates a new Route
 // By default the new route will set the followed values:
 //
@@ -110,6 +114,11 @@ func (r *route) GetMessages(ctx context.Context) (messages []loafergo.Message, e
 
 // Commit deletes the message from queue
 func (r *route) Commit(ctx context.Context, m loafergo.Message) error {
+	// if the handler  backed off the message, we should not delete it
+	if m.BackedOff() {
+		return nil
+	}
+
 	defer m.Dispatch()
 	identifier := m.Identifier()
 	_, err := r.sqs.DeleteMessage(
@@ -137,12 +146,19 @@ func (r *route) WorkerPoolSize(ctx context.Context) int32 {
 	return r.workerPoolSize
 }
 
+// VisibilityTimeout returns the router visibility timeout
+func (r *route) VisibilityTimeout(ctx context.Context) int32 {
+	return r.visibilityTimeout
+}
+
 func (r *route) changeMessageVisibility(ctx context.Context, m *message) {
 	var count int
 	extension := r.visibilityTimeout
 	sleepTime := time.Duration(r.visibilityTimeout-defaultVisibilityTimeoutControl) * time.Second
 	ticker := time.NewTicker(sleepTime)
 	defer ticker.Stop()
+
+	r.doChangeVisibilityTimeout(ctx, m, extension)
 
 	for {
 		// only allow extensionLimit extension (Default 1m30s)
@@ -151,21 +167,43 @@ func (r *route) changeMessageVisibility(ctx context.Context, m *message) {
 		}
 
 		select {
+		case d := <-m.backoffChannel:
+			r.doChangeVisibilityTimeout(ctx, m, int32(d.Seconds()))
+			return
 		case <-m.dispatched:
 			return
 		case <-ticker.C:
 			count++
 			// double the allowed processing time
 			extension += r.visibilityTimeout
-			_, _ = r.sqs.ChangeMessageVisibility(
-				ctx,
-				&sqs.ChangeMessageVisibilityInput{
-					QueueUrl:          &r.queueURL,
-					ReceiptHandle:     m.originalMessage.ReceiptHandle,
-					VisibilityTimeout: extension,
-				},
-			)
+			r.doChangeVisibilityTimeout(ctx, m, extension)
 		}
+	}
+}
+
+func (r *route) doChangeVisibilityTimeout(ctx context.Context, m *message, timeout int32) {
+	if timeout <= 0 {
+		timeout = 0
+	}
+
+	//https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_ChangeMessageVisibility.html
+	maxLimit := int32((12 * time.Hour).Seconds())
+	if timeout > maxLimit {
+		timeout = maxLimit
+	}
+
+	_, _ = r.sqs.ChangeMessageVisibility(
+		ctx,
+		&sqs.ChangeMessageVisibilityInput{
+			QueueUrl:          &r.queueURL,
+			ReceiptHandle:     m.originalMessage.ReceiptHandle,
+			VisibilityTimeout: timeout,
+		},
+	)
+
+	done, ok := ctx.Value(DoneCtxKey{}).(chan bool)
+	if ok {
+		done <- true
 	}
 }
 

@@ -15,6 +15,7 @@ type Router interface {
 	HandlerMessage(ctx context.Context, msg Message) error
 	Commit(ctx context.Context, m Message) error
 	WorkerPoolSize(ctx context.Context) int32
+	VisibilityTimeout(ctx context.Context) int32
 }
 
 // SQSClient represents the aws sqs client methods
@@ -34,6 +35,8 @@ type Message interface {
 	Decode(out interface{}) error
 	// Attribute will return the custom attribute that was sent throughout the request.
 	Attribute(key string) string
+	// Attributes will return the custom attributes that were sent with the request.
+	Attributes() map[string]string
 	// SystemAttributeByKey will return the system attributes by key.
 	SystemAttributeByKey(key string) string
 	// SystemAttributes will return the system attributes.
@@ -44,6 +47,12 @@ type Message interface {
 	Identifier() string
 	// Dispatch used to dispatch message if necessary
 	Dispatch()
+	// Backoff used to change the visibilityTimeout of the message
+	// when a message is backedoff it will not be removed from the queue
+	// instead it will extend the visibility timeout of the message
+	Backoff(delay time.Duration)
+	// BackedOff used to check if the message was backedOff by the handler
+	BackedOff() bool
 	// Body used to get the message Body
 	Body() []byte
 	// Message returns the body message

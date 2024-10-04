@@ -46,6 +46,40 @@ type LoadRouteConfigFunc func(config *RouteConfig)
 // RouteWithVisibilityTimeout is a helper function to construct functional options that sets visibility Timeout value
 // on config's Route. If multiple RouteWithVisibilityTimeout calls are made,
 // the last call overrides the previous call values.
+//
+// The minimum value is 11 seconds (defaultVisibilityTimeoutControl + 1)
+// This value is used to extend the visibility timeout of the message,
+// in order to avoid others consumers to consume this message while it is being processed.
+// It will extend it periodically based on the visibility timeout value provided
+// and at each iteration the sleep time will be doubled.
+//
+// For example:
+//
+//   - queue visibility timeout = 60 seconds (value defined in aws)
+//   - route visibility timeout = 30 seconds
+//   - time to process the message = 70 seconds
+//   - sleep time = 20 seconds (30 seconds - defaultVisibilityTimeoutControl)
+//
+// --------------------------------------
+//   - sleep 20s
+//
+// 1st iteration:
+//
+//   - change visibility timeout = 30 seconds
+//
+//   - sleep 20s
+//
+// 2nd iteration:
+//
+//   - change visibility timeout = 60 seconds
+//
+//   - handler finishes processing the message
+//
+//   - error handling the message? Message does not get deleted and the queue visibility timeout (60s) is used (default aws sqs behavior)
+//
+//   - success handling the message? Message gets deleted
+//
+// end
 func RouteWithVisibilityTimeout(v int32) LoadRouteConfigFunc {
 	return func(rc *RouteConfig) {
 		if v <= defaultVisibilityTimeoutControl {
