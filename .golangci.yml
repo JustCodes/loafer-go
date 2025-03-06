@@ -206,7 +206,7 @@ issues:
     - fake
 
 run:
-  go: "1.22"
+  go: "1.24"
   # timeout for analysis, e.g. 30s, 5m, default is 1m
   timeout: 5m
   tests: false
