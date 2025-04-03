@@ -37,6 +37,8 @@ Message produced to topic my_topic__test; id: f8db976f-1631-43ce-9806-787196b516
 Message produced to topic my_topic__test; id: 373eb406-d4f3-415b-9729-fdba291c4f12 
 Message produced to topic my_topic__test2; id: 60f5aed8-9429-42f8-ad2f-fd03e3d87a34 
 Message produced to topic my_topic__test2; id: 10d7c4a9-88f5-4730-9328-8c2f110fd7a7 
+Messages produced in batch to topic my_topic__test2, IDs: 2b8ec1ed-cd0a-42e7-8bcb-e33462933fc9 923c0f6b-f9b6-4f7c-8b99-ae42a0d5e7eb 536ba129-93e2-4098-aee5-776371c83add f16347b5-31dc-4eec-89be-085b63d79379 b4aca82a-9fcd-4b05-9b79-d66b7c498c51 a72cb949-542a-4f5a-b106-19b14063ecbe f7f7dd93-eb5b-4f49-90ab-1d538c7fcc20 c746e8b7-c55d-4e06-aaf2-e2a29e1b90b8 e7e4442c-77a7-4058-ae1d-4facee32fd21 ee7e7b5e-4e26-40fe-a7fa-fdd458eda025 
+Messages produced in batch to topic my_topic__test, IDs: f4428d9a-01f7-4297-a53e-e98e0f552973 5754631d-2e43-41b1-9f01-5a27de953e95 4d4d36a3-3169-49a9-ab37-011be6eb590f cc31ef8b-c821-469d-839b-205f4e7bb41d fc3c5c84-f6cc-4711-962a-6285b00493a1 46ba3bb4-447b-489a-a36c-9a32e5f9f110 84a7e4b7-028f-4639-8113-54ae81931b11 be78d097-36c8-4975-931b-96e43a7882ea b157f5a2-afb5-4727-a6c9-e52702ac0a2c f6d94c92-c0c6-47c3-b738-01441408500e 
 ...
 
 

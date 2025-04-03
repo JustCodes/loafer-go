@@ -52,11 +52,13 @@ func main() {
 
 	// Produce message async
 	wg := &sync.WaitGroup{}
-	wg.Add(2)
+	wg.Add(4)
 	go produceMessage(ctx, wg, producer, topicOne)
 	go produceMessage(ctx, wg, producer, topicTwo)
+	go produceBatchMessages(ctx, wg, producer, topicOne)
+	go produceBatchMessages(ctx, wg, producer, topicTwo)
 	wg.Wait()
-	log.Println("all messages was published")
+	log.Println("all messages were published")
 
 	log.Printf("\n\n******** Start queues consumers ********\n\n")
 	time.Sleep(2 * time.Second)
@@ -123,6 +125,39 @@ func produceMessage(ctx context.Context, wg *sync.WaitGroup, producer sns.Produc
 		}
 		fmt.Printf("Message produced to topic %s; id: %s \n", topic, id)
 	}
+	wg.Done()
+}
+
+func produceBatchMessages(ctx context.Context, wg *sync.WaitGroup, producer sns.Producer, topic string) {
+	topicARN, err := sns.BuildTopicARN(awsRegion, awsAccountID, topic)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	input := &sns.PublishBatchInput{
+		TopicARN: topicARN,
+	}
+
+	for i := 0; i < 10; i++ {
+		input.Messages = append(input.Messages, &sns.PublishBatchEntry{
+			ID:      fmt.Sprintf("id-%d", i),
+			Message: fmt.Sprintf("{\"message\": \"Hello world! With batch mode!\", \"topic\": \"%s\", \"id\": %d}", topic, i),
+		})
+	}
+
+	result, err := producer.ProduceBatch(ctx, input)
+	if err != nil {
+		log.Println("error to produce messages: ", err)
+		return
+	}
+
+	outStr := ""
+	for _, entry := range result.Successful {
+		outStr += fmt.Sprintf("%s ", entry.MessageID)
+	}
+
+	fmt.Printf("Messages produced in batch to topic %s, IDs: %s\n", topic, outStr)
+
 	wg.Done()
 }
 
