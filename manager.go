@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+const messageBufferFactor = 2
+
 // Manager holds the routes and config fields
 type Manager struct {
 	config *Config
@@ -58,10 +60,11 @@ func (m *Manager) Run(ctx context.Context) error {
 }
 
 func (m *Manager) processRoute(ctx context.Context, r Router) {
-	message := make(chan Message)
+	size := r.WorkerPoolSize(ctx)
+	message := make(chan Message, size*messageBufferFactor)
 	defer close(message)
 
-	for w := int32(1); w <= r.WorkerPoolSize(ctx); w++ {
+	for w := int32(1); w <= size; w++ {
 		go m.worker(ctx, r, message)
 	}
 
