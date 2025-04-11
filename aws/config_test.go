@@ -3,6 +3,7 @@ package aws_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -79,7 +80,8 @@ func TestSQSClientValidateConfig(t *testing.T) {
 					Secret: "dummy",
 					Region: "us-east-1",
 				},
-				RetryCount: 10,
+				RetryCount:        10,
+				HTTPClientTimeout: 10 * time.Second,
 			},
 		},
 		{
@@ -90,7 +92,8 @@ func TestSQSClientValidateConfig(t *testing.T) {
 					Secret: "dummy",
 					Region: "us-east-1",
 				},
-				RetryCount: 42,
+				RetryCount:        42,
+				HTTPClientTimeout: 10 * time.Second,
 			},
 			expected: &aws.ClientConfig{
 				Config: &aws.Config{
@@ -98,7 +101,8 @@ func TestSQSClientValidateConfig(t *testing.T) {
 					Secret: "dummy",
 					Region: "us-east-1",
 				},
-				RetryCount: 42,
+				RetryCount:        42,
+				HTTPClientTimeout: 10 * time.Second,
 			},
 		},
 		{

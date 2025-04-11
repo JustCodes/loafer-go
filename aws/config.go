@@ -2,7 +2,9 @@ package aws
 
 import (
 	"context"
+	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -15,7 +17,8 @@ const (
 	// DataTypeNumber represents the Number datatype, use it when creating custom attributes
 	DataTypeNumber = DataType("Number")
 	// DataTypeString represents the String datatype, use it when creating custom attributes
-	DataTypeString = DataType("String")
+	DataTypeString          = DataType("String")
+	httpClientTimoutDefault = 10 * time.Second
 )
 
 // Config defines the loafer aws configuration
@@ -42,7 +45,8 @@ type ClientConfig struct {
 	Config *Config
 	// used to determine how many attempts exponential backoff should use before logging an error
 	RetryCount int
-	// defines the total amount of goroutines that can be run by the consumer
+	// HTTPClientTimeout determine the client http timeout default is 10s
+	HTTPClientTimeout time.Duration
 }
 
 // CustomAttribute add custom attributes to SNS and SQS messages.
@@ -102,6 +106,10 @@ func ValidateConfig(cfg *ClientConfig) (*ClientConfig, error) {
 		cfg.RetryCount = defaultRetryCount
 	}
 
+	if cfg.HTTPClientTimeout == 0 {
+		cfg.HTTPClientTimeout = httpClientTimoutDefault
+	}
+
 	return cfg, nil
 }
 
@@ -114,9 +122,12 @@ func withCredentialsProvider(c *aws.CredentialsCache) func(*config.LoadOptions) 
 
 // LoadAWSConfig loads aws config
 func LoadAWSConfig(ctx context.Context, cfg *ClientConfig, c *aws.CredentialsCache) (aCfg aws.Config, err error) {
+	hc := createHTTPClient(cfg)
+
 	conf := []func(*config.LoadOptions) error{
 		config.WithRegion(cfg.Config.Region),
 		config.WithRetryMaxAttempts(cfg.RetryCount),
+		config.WithHTTPClient(hc),
 	}
 
 	if cfg.Config.Profile != "" {
@@ -143,4 +154,15 @@ func LoadAWSConfig(ctx context.Context, cfg *ClientConfig, c *aws.CredentialsCac
 	}
 
 	return aCfg, nil
+}
+
+// createHTTPClient creates a custom http client with custom configuration
+func createHTTPClient(cfg *ClientConfig) *http.Client {
+	t := http.DefaultTransport.(*http.Transport).Clone()
+	hc := &http.Client{
+		Transport: t,
+		Timeout:   cfg.HTTPClientTimeout,
+	}
+
+	return hc
 }
