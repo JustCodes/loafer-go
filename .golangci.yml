@@ -204,9 +204,10 @@ issues:
     - .github
     - example
     - fake
+    - tmp
 
 run:
   go: "1.24"
-  # timeout for analysis, e.g. 30s, 5m, default is 1m
+  # timeout for analysis, e.g., 30s, 5 m, default is 1 m
   timeout: 5m
   tests: false
