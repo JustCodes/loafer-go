@@ -25,18 +25,18 @@ type Producer interface {
 
 // PublishBatchInput holds the sns batch publish attributes
 type PublishBatchInput struct {
-	Messages []*PublishBatchEntry
 	TopicARN string
+	Messages []*PublishBatchEntry
 }
 
 // PublishBatchEntry holds the sns batch publish attributes
 // Each entry must have a unique ID to identify it in the request and response
 type PublishBatchEntry struct {
+	Attributes      map[string]string
 	ID              string
 	Message         string
 	GroupID         string
 	DeduplicationID string
-	Attributes      map[string]string
 }
 
 // PublishBatchOutput holds the sns batch publish response
@@ -53,17 +53,17 @@ type PublishBatchEntrySuccessful struct {
 
 // PublishBatchEntryFailed holds the sns batch publish response
 type PublishBatchEntryFailed struct {
-	EntryID string
 	Err     error
+	EntryID string
 }
 
 // PublishInput has the sns event attributes
 type PublishInput struct {
+	Attributes      map[string]string
 	Message         string
 	GroupID         string
 	DeduplicationID string
 	TopicARN        string
-	Attributes      map[string]string
 }
 
 type producer struct {

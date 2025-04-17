@@ -4,7 +4,7 @@ import (
 	loafergo "github.com/justcodes/loafer-go/v2"
 )
 
-// A Config provides service configuration for SNS producer.
+// A Config provides service configuration for an SNS producer.
 type Config struct {
 	SNSClient loafergo.SNSClient
 }

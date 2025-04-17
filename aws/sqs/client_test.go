@@ -47,9 +47,9 @@ func TestSQSClientLoadConfig(t *testing.T) {
 func TestNewProducer_ValidateConfig(t *testing.T) {
 	ctx := context.Background()
 	testsCases := []struct {
-		name        string
-		cfg         *loaferAWS.ClientConfig
 		expectedErr error
+		cfg         *loaferAWS.ClientConfig
+		name        string
 	}{
 		{
 			name:        "Config nil",

@@ -3,7 +3,6 @@ package aws_test
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -60,10 +59,10 @@ func TestConfig_NewCustomAttribute(t *testing.T) {
 
 func TestSQSClientValidateConfig(t *testing.T) {
 	testsCases := []struct {
-		name     string
-		cfg      *aws.ClientConfig
 		err      error
+		cfg      *aws.ClientConfig
 		expected *aws.ClientConfig
+		name     string
 	}{
 		{
 			name: "valid with retry default",
@@ -80,8 +79,7 @@ func TestSQSClientValidateConfig(t *testing.T) {
 					Secret: "dummy",
 					Region: "us-east-1",
 				},
-				RetryCount:        10,
-				HTTPClientTimeout: 10 * time.Second,
+				RetryCount: 10,
 			},
 		},
 		{
@@ -92,8 +90,7 @@ func TestSQSClientValidateConfig(t *testing.T) {
 					Secret: "dummy",
 					Region: "us-east-1",
 				},
-				RetryCount:        42,
-				HTTPClientTimeout: 10 * time.Second,
+				RetryCount: 42,
 			},
 			expected: &aws.ClientConfig{
 				Config: &aws.Config{
@@ -101,8 +98,7 @@ func TestSQSClientValidateConfig(t *testing.T) {
 					Secret: "dummy",
 					Region: "us-east-1",
 				},
-				RetryCount:        42,
-				HTTPClientTimeout: 10 * time.Second,
+				RetryCount: 42,
 			},
 		},
 		{

@@ -26,8 +26,9 @@ func (f LoggerFunc) Log(args ...interface{}) {
 	f(args...)
 }
 
-// newDefaultLogger returns a Logger which will write log messages to stdout, and
-// use same formatting runes as the stdlib log.Logger
+// newDefaultLogger returns a Logger which will write log messages to stdout
+//
+//	and use the same formatting runes as the stdlib log.Logger
 func newDefaultLogger() Logger {
 	return &defaultLogger{
 		logger: log.New(os.Stdout, "", log.LstdFlags),

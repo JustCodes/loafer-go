@@ -11,7 +11,7 @@ type Error struct {
 	Err        string `json:"err"`
 }
 
-// Error is used for implementing the error interface, and for creating
+// Error is used for implementing the error interface and for creating
 // a proper error string
 func (e *Error) Error() string {
 	if e.contextErr != nil {

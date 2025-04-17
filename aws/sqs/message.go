@@ -8,18 +8,18 @@ import (
 )
 
 type sqsMessage struct {
-	Message           string                     `json:"Message"`
 	Timestamp         time.Time                  `json:"Timestamp"`
 	MessageAttributes map[string]CustomAttribute `json:"MessageAttributes"`
+	Message           string                     `json:"Message"`
 }
 
 // message serves as a wrapper for sqs.Message as well as controls the error handling channel
 type message struct {
-	backedOff       bool
+	message         sqsMessage
 	backoffChannel  chan time.Duration
 	dispatched      chan bool
-	message         sqsMessage
 	originalMessage types.Message
+	backedOff       bool
 }
 
 func newMessage(m types.Message) *message {
@@ -53,12 +53,12 @@ func (m *message) Metadata() map[string]string {
 	return attr
 }
 
-// Decode will unmarshal the message body into a supplied output using json
+// Decode will unmarshal the message body into a supplied output using JSON
 func (m *message) Decode(out interface{}) error {
 	return json.Unmarshal(m.body(), &out)
 }
 
-// Attribute will return the custom attribute that was sent with the request.
+// Attribute will return the custom attribute sent with the request.
 func (m *message) Attribute(key string) string {
 	id, ok := m.message.MessageAttributes[key]
 	if !ok {
@@ -68,7 +68,7 @@ func (m *message) Attribute(key string) string {
 	return id.Value
 }
 
-// Attributes will return the custom attributes that were sent with the request.
+// Attributes will return the custom attributes sent with the request.
 func (m *message) Attributes() map[string]string {
 	a := map[string]string{}
 
@@ -94,7 +94,7 @@ func (m *message) SystemAttributes() map[string]string {
 	return m.originalMessage.Attributes
 }
 
-// Identifier An identifier associated with the message ReceiptHandle.
+// Identifier is an identifier associated with the message ReceiptHandle.
 func (m *message) Identifier() string {
 	return *m.originalMessage.ReceiptHandle
 }
@@ -104,7 +104,7 @@ func (m *message) Message() string {
 	return m.message.Message
 }
 
-// DecodeMessage will unmarshal the message into a supplied output using json
+// DecodeMessage will unmarshal the message into a supplied output using JSON
 func (m *message) DecodeMessage(out any) error {
 	return json.Unmarshal([]byte(m.message.Message), &out)
 }

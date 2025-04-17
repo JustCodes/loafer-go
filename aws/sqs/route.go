@@ -32,7 +32,7 @@ type route struct {
 type DoneCtxKey struct{}
 
 // NewRoute creates a new Route
-// By default the new route will set the followed values:
+// By default, the new route will set the followed values:
 //
 // Visibility timeout: 30 seconds
 // Max message: 10 unit
@@ -112,9 +112,9 @@ func (r *route) GetMessages(ctx context.Context) (messages []loafergo.Message, e
 	return
 }
 
-// Commit deletes the message from queue
+// Commit deletes the message from the queue
 func (r *route) Commit(ctx context.Context, m loafergo.Message) error {
-	// if the handler  backed off the message, we should not delete it
+	// if the handler backed off the message, we should not delete it
 	if m.BackedOff() {
 		return nil
 	}
@@ -131,7 +131,7 @@ func (r *route) Commit(ctx context.Context, m loafergo.Message) error {
 	return err
 }
 
-// HandlerMessage consumes the message from queue
+// HandlerMessage consumes the message from the queue
 func (r *route) HandlerMessage(ctx context.Context, msg loafergo.Message) error {
 	err := r.handler(ctx, msg)
 	if err != nil {

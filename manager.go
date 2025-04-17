@@ -111,7 +111,7 @@ func (m *Manager) worker(ctx context.Context, r Router, msg <-chan Message) {
 	}
 }
 
-// GetRoutes returns the available routes as a slice of Router type
+// GetRoutes returns the available routes as a slice of a Router type
 func (m *Manager) GetRoutes() []Router {
 	return m.routes
 }

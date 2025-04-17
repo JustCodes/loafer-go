@@ -10,9 +10,9 @@ func TestNewManager(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name   string
 		input  *Config
 		expect func(t *testing.T, m *Manager)
+		name   string
 	}{
 		{
 			name:  "WithLogger",

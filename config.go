@@ -8,7 +8,7 @@ const defaultRetryTimeout = 5 * time.Second
 type Config struct {
 	Logger Logger
 
-	// RetryTimeout is used when the Route GetMessages method returns error
-	// By default the retry timeout is 5s
+	// RetryTimeout is used when the Route GetMessages method returns an error;
+	// By default, the retry timeout is 5 s
 	RetryTimeout time.Duration
 }

@@ -21,7 +21,7 @@ const (
 	defaultWorkerPoolSize    = int32(5)
 )
 
-// RouteConfig are discrete set of route options that are valid for loading the route configuration
+// RouteConfig are a discrete set of route options that are valid for loading the route configuration
 type RouteConfig struct {
 	visibilityTimeout int32
 	maxMessages       int32
@@ -48,12 +48,14 @@ type LoadRouteConfigFunc func(config *RouteConfig)
 // the last call overrides the previous call values.
 //
 // The minimum value is 11 seconds (defaultVisibilityTimeoutControl + 1)
-// This value is used to extend the visibility timeout of the message,
-// in order to avoid others consumers to consume this message while it is being processed.
-// It will extend it periodically based on the visibility timeout value provided
+// This value is used to extend the visibility timeout of the message
+//
+//	to avoid other consumers from consuming this message while it is being processed.
+//
+// It will extend it periodically based on the visibility timeout value provided,
 // and at each iteration the sleep time will be doubled.
 //
-// For example:
+// For example,
 //
 //   - queue visibility timeout = 60 seconds (value defined in aws)
 //   - route visibility timeout = 30 seconds
@@ -75,7 +77,7 @@ type LoadRouteConfigFunc func(config *RouteConfig)
 //
 //   - handler finishes processing the message
 //
-//   - error handling the message? Message does not get deleted and the queue visibility timeout (60s) is used (default aws sqs behavior)
+//   - error handling the message? Message does not get deleted, and the queue visibility timeout (60s) is used (default aws sqs behavior)
 //
 //   - success handling the message? Message gets deleted
 //
@@ -131,7 +133,7 @@ type AWSConfig struct {
 	Hostname string
 	// used to determine how many attempts exponential backoff should use before logging an error
 
-	// Add custom attributes to the message. This might be a correlationId or client meta information
+	// Add custom attributes to the message. This might be a correlationId or client meta-information
 	// custom attributes will be viewable on the sqs dashboard as metadata
 	Attributes []CustomAttribute
 }
@@ -158,7 +160,7 @@ type CustomAttribute struct {
 // This can include correlationIds, logIds, or any additional information you would like
 // separate from the payload body. These attributes can be easily seen from the SQS console.
 //
-// must use sqs.DataTypeNumber of sqs.DataTypeString for the datatype, the value must match the type provided
+// Must use sqs.DataTypeNumber of sqs.DataTypeString for the datatype, the value must match the type provided
 func (c *AWSConfig) NewCustomAttribute(dataType DataType, title string, value interface{}) error {
 	if dataType == DataTypeNumber {
 		val, ok := value.(int)

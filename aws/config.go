@@ -2,9 +2,7 @@ package aws
 
 import (
 	"context"
-	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -17,8 +15,7 @@ const (
 	// DataTypeNumber represents the Number datatype, use it when creating custom attributes
 	DataTypeNumber = DataType("Number")
 	// DataTypeString represents the String datatype, use it when creating custom attributes
-	DataTypeString          = DataType("String")
-	httpClientTimoutDefault = 10 * time.Second
+	DataTypeString = DataType("String")
 )
 
 // Config defines the loafer aws configuration
@@ -35,7 +32,7 @@ type Config struct {
 	Hostname string
 	// used to determine how many attempts exponential backoff should use before logging an error
 
-	// Add custom attributes to the message. This might be a correlationId or client meta information
+	// Add custom attributes to the message. This might be a correlationId or client meta-information
 	// custom attributes will be viewable on the sqs dashboard as metadata
 	Attributes []CustomAttribute
 }
@@ -45,8 +42,6 @@ type ClientConfig struct {
 	Config *Config
 	// used to determine how many attempts exponential backoff should use before logging an error
 	RetryCount int
-	// HTTPClientTimeout determine the client http timeout default is 10s
-	HTTPClientTimeout time.Duration
 }
 
 // CustomAttribute add custom attributes to SNS and SQS messages.
@@ -64,7 +59,7 @@ type CustomAttribute struct {
 // This can include correlationIds, logIds, or any additional information you would like
 // separate from the payload body. These attributes can be easily seen from the SQS console.
 //
-// must use sqs.DataTypeNumber of sqs.DataTypeString for the datatype, the value must match the type provided
+// Must use sqs.DataTypeNumber of sqs.DataTypeString for the datatype, the value must match the type provided
 func (c *Config) NewCustomAttribute(dataType DataType, title string, value interface{}) error {
 	if dataType == DataTypeNumber {
 		val, ok := value.(int)
@@ -106,10 +101,6 @@ func ValidateConfig(cfg *ClientConfig) (*ClientConfig, error) {
 		cfg.RetryCount = defaultRetryCount
 	}
 
-	if cfg.HTTPClientTimeout == 0 {
-		cfg.HTTPClientTimeout = httpClientTimoutDefault
-	}
-
 	return cfg, nil
 }
 
@@ -122,12 +113,9 @@ func withCredentialsProvider(c *aws.CredentialsCache) func(*config.LoadOptions) 
 
 // LoadAWSConfig loads aws config
 func LoadAWSConfig(ctx context.Context, cfg *ClientConfig, c *aws.CredentialsCache) (aCfg aws.Config, err error) {
-	hc := createHTTPClient(cfg)
-
 	conf := []func(*config.LoadOptions) error{
 		config.WithRegion(cfg.Config.Region),
 		config.WithRetryMaxAttempts(cfg.RetryCount),
-		config.WithHTTPClient(hc),
 	}
 
 	if cfg.Config.Profile != "" {
@@ -146,23 +134,12 @@ func LoadAWSConfig(ctx context.Context, cfg *ClientConfig, c *aws.CredentialsCac
 		return
 	}
 
-	// if an optional hostname config is provided, then replace the default one
+	// If an optional hostname config is provided, then replace the default one
 	//
-	// This will set the default AWS URL to a hostname of your choice. Perfect for testing, or mocking functionality
+	// This will set the default AWS URL to a hostname of your choice. Perfect for testing or mocking functionality
 	if cfg.Config.Hostname != "" {
 		aCfg.BaseEndpoint = aws.String(cfg.Config.Hostname)
 	}
 
 	return aCfg, nil
-}
-
-// createHTTPClient creates a custom http client with custom configuration
-func createHTTPClient(cfg *ClientConfig) *http.Client {
-	t := http.DefaultTransport.(*http.Transport).Clone()
-	hc := &http.Client{
-		Transport: t,
-		Timeout:   cfg.HTTPClientTimeout,
-	}
-
-	return hc
 }
