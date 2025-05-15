@@ -1,187 +1,123 @@
 # Loafer Go
 
----
-
-Lib for Go with:
-
-- Async pooling of AWS/SQS messages
-- Producer of AWS/SNS messages
-
-### Install
+Loafer Go is a lightweight Go library designed for high-throughput and concurrent processing of messages from AWS SQS queues and sending to AWS SNS topics.
 
 ---
 
-Manual install:
+## ✨ Features
+
+- ✅ **Concurrent Message Consumers** with fixed worker pool size
+- ✅ **FIFO Grouped Processing** 
+  - Based `MessageGroupId` and custom fields (loafergo.PerGroupID)
+  - Parallel (loafergo.Parallel)
+- ✅ **SNS Producer** with support for both standard and FIFO topics
+- ✅ **SQS Batch Receive and Parallel Handling**
+- ✅ **Simple API** with clean abstractions and interfaces
+- ✅ **Test Coverage & Benchmarks**
+- ✅ **Fully Configurable** via functional options
+
+---
+
+## 📦 Installation
 
 ```bash
 go get -u github.com/justcodes/loafer-go/v2
 ```
 
-Golang import:
+Import into your project:
 
 ```go
 import "github.com/justcodes/loafer-go/v2"
 ```
 
-### Usage
+---
+
+## 🚀 Quickstart Example
+
+Start by writing a main application that produces messages to SNS and consumes from SQS.
+
+[example](/example)
 
 ---
 
-```go
-package main
+## 🐳 Local Development (with LocalStack)
 
-import (
-	"context"
-	"fmt"
-	"log"
-	"sync"
-	"time"
+Make sure you have Docker installed.
 
-	loafergo "github.com/justcodes/loafer-go/v2"
-	"github.com/justcodes/loafer-go/v2/aws"
-	"github.com/justcodes/loafer-go/v2/aws/sns"
-	"github.com/justcodes/loafer-go/v2/aws/sqs"
-)
-
-const (
-	awsEndpoint  = "http://localhost:4566"
-	awsKey       = "dummy"
-	awsSecret    = "dummy"
-	awsAccountID = "000000000000"
-	awsRegion    = "us-east-1"
-	awsProfile   = "test-profile"
-	workPool     = 5
-	topicOne     = "my_topic__test"
-	topicTwo     = "my_topic__test2"
-	queueOne     = "example-1"
-	queueTwo     = "example-2"
-)
-
-func main() {
-	defer panicRecover()
-	ctx := context.Background()
-	awsConfig := &aws.Config{
-		Key:      awsKey,
-		Secret:   awsSecret,
-		Region:   awsRegion,
-		Profile:  awsProfile,
-		Hostname: awsEndpoint,
-	}
-
-	snsClient, err := sns.NewClient(ctx, &aws.ClientConfig{
-		Config:     awsConfig,
-		RetryCount: 4,
-	})
-
-	producer, err := sns.NewProducer(&sns.Config{
-		SNSClient: snsClient,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Produce message async
-	wg := &sync.WaitGroup{}
-	wg.Add(2)
-	go produceMessage(ctx, wg, producer, topicOne)
-	go produceMessage(ctx, wg, producer, topicTwo)
-	wg.Wait()
-	log.Println("all messages was published")
-
-	log.Printf("\n\n******** Start queues consumers ********\n\n")
-	time.Sleep(2 * time.Second)
-
-	sqsClient, err := sqs.NewClient(ctx, &aws.ClientConfig{
-		Config:     awsConfig,
-		RetryCount: 4,
-	})
-
-	var routes = []loafergo.Router{
-		sqs.NewRoute(
-			&sqs.Config{
-				SQSClient: sqsClient,
-				Handler:   handler1,
-				QueueName: queueOne,
-			},
-			sqs.RouteWithVisibilityTimeout(25),
-			sqs.RouteWithMaxMessages(5),
-			sqs.RouteWithWaitTimeSeconds(8),
-			sqs.RouteWithWorkerPoolSize(workPool),
-		),
-		sqs.NewRoute(&sqs.Config{
-			SQSClient: sqsClient,
-			Handler:   handler2,
-			QueueName: queueTwo,
-		}),
-		sqs.NewRoute(&sqs.Config{
-			SQSClient: sqsClient,
-			Handler:   handler3,
-			QueueName: queueTwo,
-		}),
-	}
-
-	c := &loafergo.Config{}
-	manager := loafergo.NewManager(c)
-	manager.RegisterRoutes(routes)
-
-	// Run manager
-	err = manager.Run(ctx)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func handler1(ctx context.Context, m loafergo.Message) error {
-	fmt.Printf("Message received handler1:  %s\n ", string(m.Body()))
-	return nil
-}
-
-func handler2(ctx context.Context, m loafergo.Message) error {
-	fmt.Printf("Message received handler2: %s\n ", string(m.Body()))
-	return nil
-}
-
-func handler2(ctx context.Context, m loafergo.Message) error {
-	fmt.Printf("Message received handler2: %s\n ", string(m.Body()))
-	m.Backoff(2 * time.Hour) // visibility timeout will be extended in 2h
-	return nil
-}
-
-func produceMessage(ctx context.Context, wg *sync.WaitGroup, producer sns.Producer, topic string) {
-	for i := 0; i < 20; i++ {
-		topicARN, err := sns.BuildTopicARN(awsRegion, awsAccountID, topic)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		id, err := producer.Produce(ctx, &sns.PublishInput{
-			Message:  fmt.Sprintf("{\"message\": \"Hello world!\", \"topic\": \"%s\", \"id\": %d}", topic, i),
-			TopicARN: topicARN,
-		})
-		if err != nil {
-			log.Println("error to produce message: ", err)
-			continue
-		}
-		fmt.Printf("Message produced to topic %s; id: %s \n", topic, id)
-	}
-	wg.Done()
-}
-
-func panicRecover() {
-	if r := recover(); r != nil {
-		log.Panicf("error: %v", r)
-	}
-	log.Println("example stopped")
-}
-
+```bash
+docker compose up -d
 ```
 
-### TODO
+The init script in `./aws/init-aws.sh` will:
 
-- [x] Add more tests
-- [ ] Add support for sending messages to SQS
-- [x] Add support for sending messages to SNS
+- Create topics (`standard` and `fifo`)
+- Create queues
+- Subscribe queues to the topics
 
-### Acknowledgments
+---
 
-This lib is inspired by [loafer](https://github.com/georgeyk/loafer/) and [gosqs](https://github.com/qhenkart/gosqs).
+## 🧪 Testing
+
+Run tests:
+
+```bash
+make test
+```
+
+Run benchmarks:
+
+```bash
+make test-bench
+```
+
+Install formatters and linters:
+
+```bash
+make configure
+```
+
+---
+
+## 📁 Project Structure
+
+- `loafergo/` – Main package code
+- `aws/` – AWS configuration, SQS/SNS clients, and route handlers
+- `example/` – Sample producer and consumer demonstrating loafergo usage
+- `fake/` – Fakes for tests
+
+---
+
+## 🧪 Benchmark (SNS & SQS)
+
+```text
+BenchmarkParserJSONToAnotherJSON_Small-12       12374347               474.9 ns/op           272 B/op          8 allocs/op
+BenchmarkParserJSONToAnotherJSON_Medium-12       3689594              1573 ns/op             552 B/op         10 allocs/op
+BenchmarkParserJSONToAnotherJSON_Large-12        1672772              3476 ns/op            1144 B/op          7 allocs/op
+BenchmarkStructToMap-12                          4388439              1468 ns/op            1160 B/op          8 allocs/op
+BenchmarkStructToMapConcurrent-12                4082488              1512 ns/op            1160 B/op          8 allocs/op
+BenchmarkStructToMapWithCache-12                 6046621              1025 ns/op            1160 B/op          8 allocs/op
+```
+
+---
+
+## 📌 Makefile Tasks
+
+```makefile
+make update-dependencies     # Update Go dependencies
+make format                  # Run goimports
+make lint                    # Run golangci-lint
+make install-golang-ci       # Install GolangCI-Lint
+make install-goimports       # Install GoImports
+make clean                   # Clean test cache
+make test                    # Run tests with coverage
+make test-bench              # Run benchmarks
+```
+
+---
+
+## 🔚 Acknowledgments
+
+Inspired by:
+
+- [loafer](https://github.com/georgeyk/loafer)
+- [gosqs](https://github.com/qhenkart/gosqs)

@@ -9,7 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sns v1.34.4
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.38.5
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/net v0.39.0
+	golang.org/x/net v0.40.0
 )
 
 require (
@@ -26,6 +26,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
-	golang.org/x/text v0.24.0 // indirect
+	golang.org/x/text v0.25.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

@@ -79,7 +79,7 @@ func (m *message) Attributes() map[string]string {
 	return a
 }
 
-// SystemAttributeByKey will return the system attributes by key.
+// SystemAttributeByKey will return the system attributing by key.
 func (m *message) SystemAttributeByKey(key string) string {
 	value, ok := m.originalMessage.Attributes[key]
 	if !ok {

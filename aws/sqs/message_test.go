@@ -43,6 +43,34 @@ func TestMessage_Attribute(t *testing.T) {
 	})
 }
 
+func TestMessage_Attributes(t *testing.T) {
+	t.Run("should return attributes value", func(t *testing.T) {
+		msg := newMessage(types.Message{
+			Body: &mockBody,
+			MessageAttributes: map[string]types.MessageAttributeValue{
+				"foo": {
+					DataType:    aws.String("String"),
+					StringValue: aws.String("bar"),
+				},
+			},
+		})
+		attrs := msg.Attributes()
+		expected := map[string]string{
+			"foo": "bar",
+		}
+		assert.Equal(t, expected, attrs)
+	})
+
+	t.Run("should return empty attributes value", func(t *testing.T) {
+		msg := newMessage(types.Message{
+			Body: aws.String("body"),
+		})
+		attrs := msg.Attributes()
+		expected := map[string]string{}
+		assert.Equal(t, expected, attrs)
+	})
+}
+
 func TestMessage_Body(t *testing.T) {
 	t.Run("With body", func(t *testing.T) {
 		msg := newMessage(types.Message{

@@ -16,6 +16,8 @@ type Router interface {
 	Commit(ctx context.Context, m Message) error
 	WorkerPoolSize(ctx context.Context) int32
 	VisibilityTimeout(ctx context.Context) int32
+	RunMode(ctx context.Context) Mode
+	CustomGroupFields(ctx context.Context) []string
 }
 
 // SQSClient represents the aws sqs client methods

@@ -1,50 +1,145 @@
-# Loafer Go Example
+# 🧰 Loafer Go Example
 
-The code examples that show you how to create multiple handlers using `loafer go` to consume different queues within the same service
+This project demonstrates
+how to consume multiple AWS SQS queues
+using the [`loafer-go`](https://github.com/justcodes/loafer-go) library in a single service,
+with support for **SNS topics** (standard and FIFO) and **SQS consumers** running concurrently.
 
-For it, we will use a Localstack running on a Docker container using Docker Compose.
+It uses [LocalStack](https://github.com/localstack/localstack) to simulate AWS services locally via Docker Compose.
 
-> Make sure you have Docker and Docker Compose installed on your machine.
+---
 
-## Run local
+## ✅ Features
 
-### Running Localstack
+- 📦 Multiple SQS queue consumers in a single app
+- 🔄 FIFO and Standard SNS topic publishing
+- 🧵 Grouped parallel processing using `PerGroupID` mode
+- 🌐 LocalStack-based environment for local AWS simulation
+- ✨ Built-in retries, batching and message attributes
 
-From this directory execute the following Docker Compose command:
+---
 
-```sh
+## 🚀 Getting Started
+
+### 1. Requirements
+
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
+- [Go 1.19+](https://go.dev/doc/install)
+
+---
+
+### 2. Run LocalStack
+
+Start the environment with preconfigured SNS topics and SQS queues:
+
+```bash
 docker compose up -d
 ```
 
-> All initial configs to `aws` are inside `./aws` folder.
-> it will create topics, queues and subscriptions
+> The script at `./aws/init-aws.sh` initializes topics, queues and subscriptions using AWS CLI + LocalStack.
 
-More about Localstack you can find [here](https://github.com/localstack/localstack), including how to create the resources on localstack initialization.
+---
 
-### Run the example
+### 3. Run the Example
 
-When the container is ready, run the example with the command:
+When LocalStack is ready (check container logs), run the Go example:
 
-```shell
+```bash
 go run .
 ```
 
-The output should be something like this:
+---
+
+## 📝 Example Output
+
+You should see output similar to:
 
 ```console
-Message produced to topic my_topic__test2; id: 7750c733-abb8-4f37-81d4-202c505d5fec    
-Message produced to topic my_topic__test; id: f8db976f-1631-43ce-9806-787196b5165b 
-Message produced to topic my_topic__test; id: 373eb406-d4f3-415b-9729-fdba291c4f12 
-Message produced to topic my_topic__test2; id: 60f5aed8-9429-42f8-ad2f-fd03e3d87a34 
-Message produced to topic my_topic__test2; id: 10d7c4a9-88f5-4730-9328-8c2f110fd7a7 
-Messages produced in batch to topic my_topic__test2, IDs: 2b8ec1ed-cd0a-42e7-8bcb-e33462933fc9 923c0f6b-f9b6-4f7c-8b99-ae42a0d5e7eb 536ba129-93e2-4098-aee5-776371c83add f16347b5-31dc-4eec-89be-085b63d79379 b4aca82a-9fcd-4b05-9b79-d66b7c498c51 a72cb949-542a-4f5a-b106-19b14063ecbe f7f7dd93-eb5b-4f49-90ab-1d538c7fcc20 c746e8b7-c55d-4e06-aaf2-e2a29e1b90b8 e7e4442c-77a7-4058-ae1d-4facee32fd21 ee7e7b5e-4e26-40fe-a7fa-fdd458eda025 
-Messages produced in batch to topic my_topic__test, IDs: f4428d9a-01f7-4297-a53e-e98e0f552973 5754631d-2e43-41b1-9f01-5a27de953e95 4d4d36a3-3169-49a9-ab37-011be6eb590f cc31ef8b-c821-469d-839b-205f4e7bb41d fc3c5c84-f6cc-4711-962a-6285b00493a1 46ba3bb4-447b-489a-a36c-9a32e5f9f110 84a7e4b7-028f-4639-8113-54ae81931b11 be78d097-36c8-4975-931b-96e43a7882ea b157f5a2-afb5-4727-a6c9-e52702ac0a2c f6d94c92-c0c6-47c3-b738-01441408500e 
-...
+Message produced to topic my_topic__test2; id: aed1...
+Message produced to topic my_topic__test; id: dcc8...
 
+Messages produced in batch to topic my_topic__test, IDs:
+  4d4d36a3... fc3c5c84...
+
+... 
 
 ******** Start queues consumers ********
 
-Message received handler1:  {"Type": "Notification", "MessageId": "95aea4d0-55b2-41bf-b064-b474d2654272", "TopicArn": "arn:aws:sns:us-east-1:000000000000:my_topic__test", "Message": "{\"message\": \"Hello world!\", \"topic\": \"my_topic__test\", \"id\": 3}", "Timestamp": "2024-08-14T16:43:31.850Z", "UnsubscribeURL": "http://localhost.localstack.cloud:4566/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:000000000000:my_topic__test:8ccc2bbc-35a6-406b-b1e2-87edae9a46af", "SignatureVersion": "1", "Signature": "L7cixLw+OoZ64f3Ual7ryzNEQ2k7gIxC8KGJywXg3RaQvOp9Pb3/clvMoUU2C4QsPQnJmY9ymKu7aMx2ucE8Qlz6nzgad5Z9RsAfkU/IgFb24OPUcGa6s51az2sNBhDdKjo/O9yl/Rpal/YmSjbH2B8vEbhWD1Fg+GOhkpIpUvtDSOUsJtFXKjPeHIYTATJXD5+Ne93kUo7wH4WCNEiZdZfkvJhWJ7HNm3kHOe46NGTNJroMiXNsV3ZVrtiNxUZL3piinu94GRauV4PwT4HjmdE8N9MSVXSiZeEfakxTKf5G2O+uDCXN+IwslcU2Tfbccdt+3X410Ti1oHFulsr1Qg==", "SigningCertURL": "http://localhost.localstack.cloud:4566/_aws/sns/SimpleNotificationService-6c6f63616c737461636b69736e696365.pem"}
- Message received handler2: {"Type": "Notification", "MessageId": "10d7c4a9-88f5-4730-9328-8c2f110fd7a7", "TopicArn": "arn:aws:sns:us-east-1:000000000000:my_topic__test2", "Message": "{\"message\": \"Hello world!\", \"topic\": \"my_topic__test2\", \"id\": 2}", "Timestamp": "2024-08-14T16:43:31.822Z", "UnsubscribeURL": "http://localhost.localstack.cloud:4566/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:000000000000:my_topic__test2:ad9dd9ae-a18e-4398-9a10-94a67a96ce87", "SignatureVersion": "1", "Signature": "B7Hq+Byn15i9VnSphCqjvy0MspnibVjfwcvuf4f8hGa07G7QeeajUyWNEEAoFvfcgMRdkWJgtvZnV2uGd9rJrqhy0iERFY1UGUZl6un9Gkf8wfd+BFNdrJrz3VDDXuwQfy29k+kpvwLaYGMENzQwcddsqdjVFpy8/3PiavYjf5CApFavbcI4fWmZlLajJW1fIZDf5Qbsibs1QXvR6EI0re8v4wFkqNXylchA2YNyjYmgd6vsgvGqTF8wZ6uE7LLHJkpiTSwSSA5RYp2Ssbrx8PJPt8HTNu79jLVvuuSYjCrP9uETM4jD1XMYXTKHzK0kBvZdxP2yAdIhTIpyPSptlA==", "SigningCertURL": "http://localhost.localstack.cloud:4566/_aws/sns/SimpleNotificationService-6c6f63616c737461636b69736e696365.pem"}
+Message received handler2Standard: {"Type": "Notification", "MessageId": "af6b2c43-7e3e-49c8-b282-33b34f2a6323", "TopicArn": "arn:aws:sns:us-east-1:000000000000:my_topic__test2", "Message": "{\"message\": \"Hello world!\", \"topic\": \"my_topic__test2\", \"id\": 19}", "Timestamp": "2025-05-15T19:31:08.915Z", "UnsubscribeURL": "http://localhost.localstack.cloud:4566/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:000000000000:my_topic__test2:d59c1a6d-8d5a-4afc-976d-1d7c3832ba97", "SignatureVersion": "1", "Signature": "pGw9mfmdku4JMmYowph07T8zlYRWVZkefwpps1NVy4ylRtywEaFak+4gE4ZYpgX368L+P1tJt2Hps3ICTxf8mH9eRK45HOA+9NCz+BHp8K1LTeBDa6dSx0ArLts5t0catgsfitCFFltYWO4go6je3QVVQACDqGfcB3H8TYMWBlmsvsZI0CebY5r+XrnN145RsfunI/R5lZIUNt/qtzzRa5r4mPq4uRxtGQVMV/KHD955puNkJlMNuTI4LTHlgNonB+nOR1zZP9jCeaAvorBSRZdpjApy7DaXQ9euULCDhuaqUMqwcwy61doCECbk2AGSE7c1wTicbP7LHjoUKfK03Q==", "SigningCertURL": "http://localhost.localstack.cloud:4566/_aws/sns/SimpleNotificationService-6c6f63616c737461636b69736e696365.pem"}
+Message received handler3Fifo: {"Type": "Notification", "MessageId": "ff42f904-62b7-4261-85be-98f0a13331a8", "TopicArn": "arn:aws:sns:us-east-1:000000000000:my_topic__test_f.fifo", "Message": "{\"message\": \"Hello world!\", \"topic\": \"my_topic__test_f.fifo\", \"id\": 27, \"seller_id\": 0}", "Timestamp": "2025-05-15T19:31:09.066Z", "UnsubscribeURL": "http://localhost.localstack.cloud:4566/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:000000000000:my_topic__test_f.fifo:c72ec955-7d90-48f0-9ae7-3a1f8f86b7ef", "MessageAttributes": {"seller_id": {"Type": "String", "Value": "0"}}, "SequenceNumber": "15009515419264352282"}
+Message received handler3Fifo: {"Type": "Notification", "MessageId": "9b0edb43-47fd-4efe-93be-8f54111c1e56", "TopicArn": "arn:aws:sns:us-east-1:000000000000:my_topic__test_f.fifo", "Message": "{\"message\": \"Hello world!\", \"topic\": \"my_topic__test_f.fifo\", \"id\": 28, \"seller_id\": 1}", "Timestamp": "2025-05-15T19:31:09.069Z", "UnsubscribeURL": "http://localhost.localstack.cloud:4566/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:000000000000:my_topic__test_f.fifo:c72ec955-7d90-48f0-9ae7-3a1f8f86b7ef", "MessageAttributes": {"seller_id": {"Type": "String", "Value": "1"}}, "SequenceNumber": "15009515419264352283"}
+Message received handler3Fifo: {"Type": "Notification", "MessageId": "70c801eb-5bae-4427-87cb-ca1db79d6f2e", "TopicArn": "arn:aws:sns:us-east-1:000000000000:my_topic__test_f.fifo", "Message": "{\"message\": \"Hello world!\", \"topic\": \"my_topic__test_f.fifo\", \"id\": 29, \"seller_id\": 1}", "Timestamp": "2025-05-15T19:31:09.076Z", "UnsubscribeURL": "http://localhost.localstack.cloud:4566/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:000000000000:my_topic__test_f.fifo:c72ec955-7d90-48f0-9ae7-3a1f8f86b7ef", "MessageAttributes": {"seller_id": {"Type": "String", "Value": "1"}}, "SequenceNumber": "15009515419264352284"}
+Message received handler3Fifo: {"Type": "Notification", "MessageId": "2a1922da-b03c-44d0-9cc4-1a21b0b27c8f", "TopicArn": "arn:aws:sns:us-east-1:000000000000:my_topic__test_f.fifo", "Message": "{\"message\": \"Hello world!\", \"topic\": \"my_topic__test_f.fifo\", \"id\": 30, \"seller_id\": 2}", "Timestamp": "2025-05-15T19:31:09.082Z", "UnsubscribeURL": "http://localhost.localstack.cloud:4566/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:000000000000:my_topic__test_f.fifo:c72ec955-7d90-48f0-9ae7-3a1f8f86b7ef", "MessageAttributes": {"seller_id": {"Type": "String", "Value": "2"}}, "SequenceNumber": "15009515419264352285"}
+
 ...
 ```
+
+---
+
+## 🧪 What's Happening
+
+1. The app **publishes messages** to:
+    - Standard SNS topics: `my_topic__test`, `my_topic__test2`
+    - FIFO SNS topic: `my_topic__test_f.fifo`
+
+2. Subscribed SQS queues receive the messages:
+    - `example-1`, `example-2` for standard
+    - `example.fifo` for FIFO (with deduplication + message group ID)
+
+3. The consumer manager spins up workers per queue and **dispatches messages to handlers**:
+    - `handler1Standard`, `handler2Standard`, `handler3Fifo`
+
+4. FIFO processing uses:
+   ```go
+   loafergo.RouteWithRunMode(loafergo.PerGroupID),
+   loafergo.RouteWithCustomGroupFields([]string{"seller_id"})
+   ```
+
+---
+
+## 📂 Project Structure
+
+```bash
+.
+├── aws
+│   └── init-aws.sh       # SNS/SQS setup script
+├── docker-compose.yml    # LocalStack environment
+├── main.go               # Loafer Go example
+└── README.md             # You're here :)
+```
+
+---
+
+## 🛠️ Customization Tips
+
+- To **add more queues**: create new `sqs.NewRoute` with handler
+- To **add more SNS topics**: update `init-aws.sh`
+- To **test error retries**: modify handler to simulate failure
+- To **test FIFO grouping**: publish with `GroupID` and attributes
+
+---
+
+## 📚 References
+
+- 🔗 [loafer-go documentation](https://github.com/justcodes/loafer-go)
+- 🔗 [LocalStack docs](https://docs.localstack.cloud/)
+- 🔗 [AWS SNS/SQS FIFO queues](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html)
+
+---
+
+## 🧼 Cleanup
+
+To stop everything:
+
+```bash
+docker compose down -v
+```
+
+---
+
+## 💬 Support
+
+Open an issue or reach out at [github.com/justcodes/loafer-go](https://github.com/justcodes/loafer-go)
+
+---

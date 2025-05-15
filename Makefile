@@ -36,3 +36,7 @@ clean:
 test:
 	@$(MAKE) -s clean
 	@go test -timeout 1m -race -covermode=atomic -coverprofile=tmp.out ./... && cat tmp.out | grep -Ev 'example|fake' > geral.out  && go tool cover -func=geral.out
+
+test-bench:
+	@$(MAKE) -s clean
+	@go test -bench=. ./... -benchtime=5s -count 1 -benchmem

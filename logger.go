@@ -8,7 +8,7 @@ import (
 // A Logger is a minimalistic interface for the loafer to log messages to. Should
 // be used to provide custom logging writers for the loafer to use.
 type Logger interface {
-	Log(...interface{})
+	Log(args ...any)
 }
 
 // A LoggerFunc is a convenience type to convert a function taking a variadic
@@ -44,3 +44,9 @@ type defaultLogger struct {
 func (l defaultLogger) Log(args ...interface{}) {
 	l.logger.Println(args...)
 }
+
+// NoOpLogger is a logger that does nothing.
+type NoOpLogger struct{}
+
+// Log implements Logger but does nothing.
+func (NoOpLogger) Log(args ...any) {}

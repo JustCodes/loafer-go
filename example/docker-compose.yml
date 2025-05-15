@@ -1,5 +1,3 @@
-version: "4.0"
-
 volumes:
   localstack:
 

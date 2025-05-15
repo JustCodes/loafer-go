@@ -23,9 +23,11 @@ const (
 
 // RouteConfig are a discrete set of route options that are valid for loading the route configuration
 type RouteConfig struct {
+	customGroupFields []string
+	extensionLimit    int
+	runMode           loafergo.Mode
 	visibilityTimeout int32
 	maxMessages       int32
-	extensionLimit    int
 	waitTimeSeconds   int32
 	workerPoolSize    int32
 }
@@ -37,6 +39,7 @@ func loadDefaultRouteConfig() *RouteConfig {
 		extensionLimit:    defaultExtensionLimit,
 		waitTimeSeconds:   defaultWaitTimeSeconds,
 		workerPoolSize:    defaultWorkerPoolSize,
+		runMode:           loafergo.Parallel,
 	}
 }
 
@@ -116,6 +119,30 @@ func RouteWithWaitTimeSeconds(v int32) LoadRouteConfigFunc {
 func RouteWithWorkerPoolSize(v int32) LoadRouteConfigFunc {
 	return func(rc *RouteConfig) {
 		rc.workerPoolSize = v
+	}
+}
+
+// RouteWithRunMode sets the routing mode for message processing.
+//
+// It returns a LoadRouteConfigFunc that updates the RouteConfig with the given Mode.
+// This controls how SQS messages are dispatched to workers—either fully in parallel (Parallel)
+// or grouped by MessageGroupId and custom fields (PerGroupID).
+//
+// The default mode is Parallel.
+func RouteWithRunMode(v loafergo.Mode) LoadRouteConfigFunc {
+	return func(rc *RouteConfig) {
+		rc.runMode = v
+	}
+}
+
+// RouteWithCustomGroupFields sets the custom group fields used for message routing
+// when the run mode is set to PerGroupID.
+// These fields are extracted from the message body and appended to the MessageGroupId
+// to generate a unique group key.
+// This allows finer control over how messages are partitioned across workers.
+func RouteWithCustomGroupFields(v []string) LoadRouteConfigFunc {
+	return func(rc *RouteConfig) {
+		rc.customGroupFields = v
 	}
 }
 

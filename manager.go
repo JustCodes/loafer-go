@@ -2,39 +2,44 @@ package loafergo
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"math/rand"
 	"sync"
 	"time"
 )
 
-const messageBufferFactor = 2
+const messageGroupID = "MessageGroupId"
 
-// Manager holds the routes and config fields
+// Manager coordinates multiple routes and startWorker pools.
 type Manager struct {
 	config *Config
 	routes []Router
 }
 
-// NewManager creates a new Manager with the given configuration
+// NewManager creates a new Manager with the provided configuration.
 func NewManager(config *Config) *Manager {
-	cfg := loadConfig(config)
-
-	return &Manager{config: cfg}
+	return &Manager{
+		config: loadConfig(config),
+	}
 }
 
-// RegisterRoute register a new route to the Manager
+// RegisterRoute adds a single route to the manager.
 func (m *Manager) RegisterRoute(route Router) {
 	m.routes = append(m.routes, route)
 }
 
-// RegisterRoutes register more than one route to the Manager
+// RegisterRoutes adds multiple routes to the manager.
 func (m *Manager) RegisterRoutes(routes []Router) {
 	m.routes = append(m.routes, routes...)
 }
 
-// Run the Manager distributing the worker pool by the number of routes
-// returns errors if no routes
+// GetRoutes returns all registered routes.
+func (m *Manager) GetRoutes() []Router {
+	return m.routes
+}
+
+// Run the Manager distributing the startWorker pool by the number of routes.
+// Returns an error if no routes are registered.
 func (m *Manager) Run(ctx context.Context) error {
 	if len(m.routes) == 0 {
 		return ErrNoRoute
@@ -44,95 +49,111 @@ func (m *Manager) Run(ctx context.Context) error {
 	wg.Add(len(m.routes))
 
 	for _, r := range m.routes {
-		err := r.Configure(ctx)
-		if err != nil {
-			m.config.Logger.Log(err)
+		route := r // avoid closure over loop variable
+
+		if err := route.Configure(ctx); err != nil {
+			m.config.Logger.Log("route configuration failed:", err)
 			return err
 		}
+
 		go func() {
-			m.processRoute(ctx, r)
-			wg.Done()
+			defer wg.Done()
+			m.runRoute(ctx, route)
 		}()
 	}
-	// wait for all routes to finish
+
 	wg.Wait()
 	return nil
 }
 
-func (m *Manager) processRoute(ctx context.Context, r Router) {
-	size := r.WorkerPoolSize(ctx)
-	message := make(chan Message, size*messageBufferFactor)
-	defer close(message)
+func (m *Manager) runRoute(ctx context.Context, r Router) {
+	workerCount := int(r.WorkerPoolSize(ctx))
+	messageChs := make([]chan Message, workerCount)
 
-	for w := int32(1); w <= size; w++ {
-		go m.worker(ctx, r, message)
+	for i := 0; i < workerCount; i++ {
+		messageChs[i] = make(chan Message)
+		go m.startWorker(ctx, r, messageChs[i])
 	}
 
-	m.config.Logger.Log("\nconsumers is ready to consume messages...")
+	defer func() {
+		for _, ch := range messageChs {
+			close(ch)
+		}
+	}()
+
+	m.config.Logger.Log("Route consumer ready...")
 
 	for {
-		if errors.Is(ctx.Err(), context.Canceled) {
-			m.config.Logger.Log("context canceled process route stopped")
-			break
-		}
+		select {
+		case <-ctx.Done():
+			m.config.Logger.Log("Context canceled; shutting down route.")
+			return
+		default:
+			msgs, err := r.GetMessages(ctx)
+			if err != nil {
+				m.config.Logger.Log(fmt.Sprintf("%s, retrying in %.2fs", ErrGetMessage.Context(err).Error(), m.config.RetryTimeout.Seconds()))
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(m.config.RetryTimeout):
+					continue
+				}
+			}
 
-		msgs, err := r.GetMessages(ctx)
-		if err != nil {
-			m.config.Logger.Log(
-				fmt.Sprintf(
-					"%s , retrying in %fs",
-					ErrGetMessage.Context(err).Error(),
-					m.config.RetryTimeout.Seconds(),
-				),
-			)
-			time.Sleep(m.config.RetryTimeout)
-			continue
-		}
-
-		for _, msg := range msgs {
-			message <- msg
+			for _, msg := range msgs {
+				index := m.assignWorkerIndex(ctx, msg, r, workerCount)
+				select {
+				case messageChs[index] <- msg:
+				case <-ctx.Done():
+					m.config.Logger.Log("Context done; shutting down route.")
+					return
+				}
+			}
 		}
 	}
 }
 
-func (m *Manager) worker(ctx context.Context, r Router, msg <-chan Message) {
-	for v := range msg {
-		err := r.HandlerMessage(ctx, v)
-		if err != nil {
+func (m *Manager) assignWorkerIndex(ctx context.Context, msg Message, r Router, size int) int {
+	if r.RunMode(ctx) == PerGroupID {
+		key := m.buildGroupKey(ctx, msg, r)
+		return hashGroupID(key) % size
+	}
+	return rand.Intn(size)
+}
+
+func (m *Manager) startWorker(ctx context.Context, r Router, msgCh <-chan Message) {
+	for msg := range msgCh {
+		if err := r.HandlerMessage(ctx, msg); err != nil {
 			m.config.Logger.Log(err)
 			continue
 		}
-
-		err = r.Commit(ctx, v)
-		if err != nil {
+		if err := r.Commit(ctx, msg); err != nil {
 			m.config.Logger.Log(err)
-			continue
 		}
 	}
 }
 
-// GetRoutes returns the available routes as a slice of a Router type
-func (m *Manager) GetRoutes() []Router {
-	return m.routes
+func (m *Manager) buildGroupKey(ctx context.Context, msg Message, r Router) string {
+	key := msg.SystemAttributeByKey(messageGroupID)
+	for _, field := range r.CustomGroupFields(ctx) {
+		if v := msg.Attribute(field); v != "" {
+			key += ":" + v
+		}
+	}
+	return key
 }
 
-func loadConfig(config *Config) *Config {
-	cfg := &Config{
-		Logger:       newDefaultLogger(),
-		RetryTimeout: defaultRetryTimeout,
+func hashGroupID(s string) int {
+	h := 0
+	for _, c := range s {
+		h = int(c) + ((h << 5) - h)
 	}
+	return abs(h)
+}
 
-	if config == nil {
-		return cfg
+func abs(n int) int {
+	if n < 0 {
+		return -n
 	}
-
-	if config.Logger != nil {
-		cfg.Logger = config.Logger
-	}
-
-	if config.RetryTimeout > 0 {
-		cfg.RetryTimeout = config.RetryTimeout
-	}
-
-	return cfg
+	return n
 }

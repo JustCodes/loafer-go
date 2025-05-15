@@ -46,6 +46,8 @@ func (suite *routeSuite) setupRouter(fns ...func(*sqs.RouteConfig)) loafergo.Rou
 	optFns = append(optFns, sqs.RouteWithWaitTimeSeconds(8))
 	optFns = append(optFns, sqs.RouteWithVisibilityTimeout(12))
 	optFns = append(optFns, sqs.RouteWithWorkerPoolSize(11))
+	optFns = append(optFns, sqs.RouteWithRunMode(loafergo.PerGroupID))
+	optFns = append(optFns, sqs.RouteWithCustomGroupFields([]string{"test_id"}))
 	optFns = append(optFns, fns...)
 
 	return sqs.NewRoute(&sqs.Config{
@@ -407,6 +409,51 @@ func (suite *routeSuite) TestWorkPoolSize() {
 	})
 }
 
+func (suite *routeSuite) TestRunMode() {
+	suite.Run("should run mode", func() {
+		suite.SetupSuite()
+		ctx := context.Background()
+		got := suite.route.RunMode(ctx)
+		suite.Equal(loafergo.PerGroupID, got)
+		suite.TearDownSuite()
+	})
+
+	suite.Run("should run mode default value", func() {
+		ctx := context.Background()
+		suite.route = sqs.NewRoute(&sqs.Config{
+			SQSClient: suite.sqsClient,
+			Handler:   stubHandler,
+			QueueName: "example-1",
+		})
+		got := suite.route.RunMode(ctx)
+		suite.Equal(got, loafergo.Parallel)
+		suite.TearDownSuite()
+	})
+}
+
+func (suite *routeSuite) TestCustomGroupFields() {
+	suite.Run("should custom group fields", func() {
+		suite.SetupSuite()
+		ctx := context.Background()
+		got := suite.route.CustomGroupFields(ctx)
+		suite.Equal([]string{"test_id"}, got)
+		suite.TearDownSuite()
+	})
+
+	suite.Run("should custom group fields default value", func() {
+		ctx := context.Background()
+		suite.route = sqs.NewRoute(&sqs.Config{
+			SQSClient: suite.sqsClient,
+			Handler:   stubHandler,
+			QueueName: "example-1",
+		})
+		got := suite.route.CustomGroupFields(ctx)
+		suite.Equal([]string(nil), got)
+		suite.Len(got, 0)
+		suite.TearDownSuite()
+	})
+}
+
 func (suite *routeSuite) TestChangeVisibilityInitially() {
 	suite.Run("should change visibility timeout initially", func() {
 		visibilityTimeout := 30
@@ -479,6 +526,7 @@ func (suite *routeSuite) TestChangeVisibilityInitially() {
 	})
 
 }
+
 func (suite *routeSuite) TestChangeVisibilityTimeout() {
 	suite.Run("should change visibility timeout when handler takes time to handle msg", func() {
 		visibilityTimeout := 11 // sleepTime of ticker will be 1s

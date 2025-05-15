@@ -20,7 +20,9 @@ type route struct {
 	handler           loafergo.Handler
 	queueName         string
 	queueURL          string
+	customGroupFields []string
 	extensionLimit    int
+	runMode           loafergo.Mode
 	visibilityTimeout int32
 	maxMessages       int32
 	waitTimeSeconds   int32
@@ -67,6 +69,8 @@ func NewRoute(config *Config, optFns ...func(config *RouteConfig)) loafergo.Rout
 		maxMessages:       cfg.maxMessages,
 		waitTimeSeconds:   cfg.waitTimeSeconds,
 		workerPoolSize:    cfg.workerPoolSize,
+		runMode:           cfg.runMode,
+		customGroupFields: cfg.customGroupFields,
 	}
 }
 
@@ -149,6 +153,16 @@ func (r *route) WorkerPoolSize(ctx context.Context) int32 {
 // VisibilityTimeout returns the router visibility timeout
 func (r *route) VisibilityTimeout(ctx context.Context) int32 {
 	return r.visibilityTimeout
+}
+
+// RunMode returns the router run mode
+func (r *route) RunMode(ctx context.Context) loafergo.Mode {
+	return r.runMode
+}
+
+// CustomGroupFields returns the router custom group fields
+func (r *route) CustomGroupFields(ctx context.Context) []string {
+	return r.customGroupFields
 }
 
 func (r *route) changeMessageVisibility(ctx context.Context, m *message) {

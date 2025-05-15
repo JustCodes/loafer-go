@@ -1,7 +1,7 @@
 package loafergo_test
 
 import (
-	"fmt"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,16 +9,22 @@ import (
 	loafergo "github.com/justcodes/loafer-go/v2"
 )
 
-func TestSQSError_Error(t *testing.T) {
-	t.Run("Package error Error", func(t *testing.T) {
-		err := loafergo.ErrGetMessage
-		assert.Equal(t, "unable to retrieve message", err.Error())
-	})
+func TestError_Context(t *testing.T) {
+	base := loafergo.ErrEmptyParam
+	wrapped := base.Context(errors.New("wrapped reason"))
 
-	t.Run("Package error Context", func(t *testing.T) {
-		errPkg := loafergo.ErrGetMessage
-		err := errPkg.Context(fmt.Errorf("some error"))
-		assert.NotNil(t, err)
-		assert.Equal(t, "unable to retrieve message: some error", err.Error())
-	})
+	assert.Equal(t, "required parameter is missing: wrapped reason", wrapped.Error())
+	assert.Equal(t, "required parameter is missing", wrapped.Context(nil).Error()) // should not panic with nil
+}
+
+func TestPredefinedErrors(t *testing.T) {
+	assert.Equal(t, "no routes registered", loafergo.ErrNoRoute.Error())
+	assert.Equal(t, "failed to receive messages", loafergo.ErrGetMessage.Error())
+	assert.Equal(t, "invalid aws credentials", loafergo.ErrInvalidCreds.Error())
+	assert.Equal(t, "unable to marshal request", loafergo.ErrMarshal.Error())
+	assert.Equal(t, "sqs client is nil", loafergo.ErrNoSQSClient.Error())
+	assert.Equal(t, "handler is nil", loafergo.ErrNoHandler.Error())
+	assert.Equal(t, "required parameter is missing", loafergo.ErrEmptyParam.Error())
+	assert.Equal(t, "required field is missing", loafergo.ErrEmptyRequiredField.Error())
+	assert.Equal(t, "input must be filled", loafergo.ErrEmptyInput.Error())
 }
