@@ -124,11 +124,19 @@ func (m *Manager) assignWorkerIndex(ctx context.Context, msg Message, r Router, 
 func (m *Manager) startWorker(ctx context.Context, r Router, msgCh <-chan Message) {
 	for msg := range msgCh {
 		if err := r.HandlerMessage(ctx, msg); err != nil {
-			m.config.Logger.Log(err)
+			logMsg := fmt.Sprintf(
+				"handler_message_error: %v; message: %s; group_id: %s; identifier: %s",
+				err, msg.Body(), msg.SystemAttributeByKey(messageGroupID), msg.Identifier(),
+			)
+			m.config.Logger.Log(logMsg)
 			continue
 		}
 		if err := r.Commit(ctx, msg); err != nil {
-			m.config.Logger.Log(err)
+			logMsg := fmt.Sprintf(
+				"commit_message_error: %v; message: %s; group_id: %s; identifier: %s",
+				err, msg.Body(), msg.SystemAttributeByKey(messageGroupID), msg.Identifier(),
+			)
+			m.config.Logger.Log(logMsg)
 		}
 	}
 }

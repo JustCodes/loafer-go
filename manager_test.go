@@ -145,6 +145,9 @@ func TestManager_Run_HandlerMessageError(t *testing.T) {
 	router.On("GetMessages", mock.Anything).Return(nil, context.Canceled).Maybe()
 	router.On("HandlerMessage", mock.Anything, message).Return(errors.New("handler failed"))
 	router.On("Commit", mock.Anything, message).Return(nil).Maybe()
+	message.On("SystemAttributeByKey", "MessageGroupId").Return("group1").Maybe()
+	message.On("Body").Return([]byte("body")).Maybe()
+	message.On("Identifier").Return("id").Maybe()
 
 	logger := new(fake.Logger)
 	logger.On("Log", mock.Anything).Return()
@@ -179,6 +182,9 @@ func TestManager_Run_CommitError(t *testing.T) {
 	router.On("GetMessages", mock.Anything).Return(nil, context.Canceled).Maybe()
 	router.On("HandlerMessage", mock.Anything, message).Return(nil)
 	router.On("Commit", mock.Anything, message).Return(errors.New("commit failed"))
+	message.On("SystemAttributeByKey", "MessageGroupId").Return("group1").Maybe()
+	message.On("Body").Return([]byte("body")).Maybe()
+	message.On("Identifier").Return("id").Maybe()
 
 	logger := new(fake.Logger)
 	logger.On("Log", mock.Anything).Return()
