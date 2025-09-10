@@ -47,16 +47,16 @@ func TestManager_Run_StandardMessages(t *testing.T) {
 	router := new(fake.Router)
 	message := new(fake.Message)
 
+	logger := new(fake.Logger)
+	logger.On("Log", mock.Anything).Return()
+
 	router.On("Configure", mock.Anything).Return(nil)
 	router.On("WorkerPoolSize", mock.Anything).Return(int32(1))
 	router.On("RunMode", mock.Anything).Return(loafergo.Parallel)
-	router.On("GetMessages", mock.Anything).Return([]loafergo.Message{message}, nil).Once()
-	router.On("GetMessages", mock.Anything).Return(nil, context.Canceled).Maybe()
+	router.On("GetMessages", mock.Anything, logger).Return([]loafergo.Message{message}, nil).Once()
+	router.On("GetMessages", mock.Anything, logger).Return(nil, context.Canceled).Maybe()
 	router.On("HandlerMessage", mock.Anything, message).Return(nil)
 	router.On("Commit", mock.Anything, message).Return(nil)
-
-	logger := new(fake.Logger)
-	logger.On("Log", mock.Anything).Return()
 
 	manager := loafergo.NewManager(&loafergo.Config{
 		Logger:       logger,
@@ -80,6 +80,9 @@ func TestManager_Run_FIFO_With_GroupKey(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	logger := new(fake.Logger)
+	logger.On("Log", mock.Anything).Return()
+
 	message := new(fake.Message)
 	message.On("SystemAttributeByKey", "MessageGroupId").Return("group1")
 	message.On("Attribute", "seller_id").Return("123")
@@ -89,13 +92,10 @@ func TestManager_Run_FIFO_With_GroupKey(t *testing.T) {
 	router.On("WorkerPoolSize", mock.Anything).Return(int32(1))
 	router.On("RunMode", mock.Anything).Return(loafergo.PerGroupID)
 	router.On("CustomGroupFields", mock.Anything).Return([]string{"seller_id"})
-	router.On("GetMessages", mock.Anything).Return([]loafergo.Message{message}, nil).Once()
-	router.On("GetMessages", mock.Anything).Return(nil, context.Canceled).Maybe()
+	router.On("GetMessages", mock.Anything, logger).Return([]loafergo.Message{message}, nil).Once()
+	router.On("GetMessages", mock.Anything, logger).Return(nil, context.Canceled).Maybe()
 	router.On("HandlerMessage", mock.Anything, message).Return(nil)
 	router.On("Commit", mock.Anything, message).Return(nil)
-
-	logger := new(fake.Logger)
-	logger.On("Log", mock.Anything).Return()
 
 	manager := loafergo.NewManager(&loafergo.Config{
 		Logger:       logger,
@@ -137,20 +137,20 @@ func TestManager_Run_HandlerMessageError(t *testing.T) {
 
 	message := new(fake.Message)
 
+	logger := new(fake.Logger)
+	logger.On("Log", mock.Anything).Return()
+
 	router := new(fake.Router)
 	router.On("Configure", mock.Anything).Return(nil)
 	router.On("WorkerPoolSize", mock.Anything).Return(int32(1))
 	router.On("RunMode", mock.Anything).Return(loafergo.Parallel).Maybe()
-	router.On("GetMessages", mock.Anything).Return([]loafergo.Message{message}, nil).Once()
-	router.On("GetMessages", mock.Anything).Return(nil, context.Canceled).Maybe()
+	router.On("GetMessages", mock.Anything, logger).Return([]loafergo.Message{message}, nil).Once()
+	router.On("GetMessages", mock.Anything, logger).Return(nil, context.Canceled).Maybe()
 	router.On("HandlerMessage", mock.Anything, message).Return(errors.New("handler failed"))
 	router.On("Commit", mock.Anything, message).Return(nil).Maybe()
 	message.On("SystemAttributeByKey", "MessageGroupId").Return("group1").Maybe()
 	message.On("Body").Return([]byte("body")).Maybe()
 	message.On("Identifier").Return("id").Maybe()
-
-	logger := new(fake.Logger)
-	logger.On("Log", mock.Anything).Return()
 
 	manager := loafergo.NewManager(&loafergo.Config{
 		Logger:       logger,
@@ -173,21 +173,20 @@ func TestManager_Run_CommitError(t *testing.T) {
 	defer cancel()
 
 	message := new(fake.Message)
+	logger := new(fake.Logger)
+	logger.On("Log", mock.Anything).Return()
 
 	router := new(fake.Router)
 	router.On("Configure", mock.Anything).Return(nil)
 	router.On("WorkerPoolSize", mock.Anything).Return(int32(1))
 	router.On("RunMode", mock.Anything).Return(loafergo.Parallel)
-	router.On("GetMessages", mock.Anything).Return([]loafergo.Message{message}, nil).Once()
-	router.On("GetMessages", mock.Anything).Return(nil, context.Canceled).Maybe()
+	router.On("GetMessages", mock.Anything, logger).Return([]loafergo.Message{message}, nil).Once()
+	router.On("GetMessages", mock.Anything, logger).Return(nil, context.Canceled).Maybe()
 	router.On("HandlerMessage", mock.Anything, message).Return(nil)
 	router.On("Commit", mock.Anything, message).Return(errors.New("commit failed"))
 	message.On("SystemAttributeByKey", "MessageGroupId").Return("group1").Maybe()
 	message.On("Body").Return([]byte("body")).Maybe()
 	message.On("Identifier").Return("id").Maybe()
-
-	logger := new(fake.Logger)
-	logger.On("Log", mock.Anything).Return()
 
 	manager := loafergo.NewManager(&loafergo.Config{
 		Logger:       logger,
@@ -209,15 +208,15 @@ func TestManager_Run_GetMessagesTemporaryError(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	logger := new(fake.Logger)
+	logger.On("Log", mock.Anything).Return()
+
 	router := new(fake.Router)
 	router.On("Configure", mock.Anything).Return(nil)
 	router.On("WorkerPoolSize", mock.Anything).Return(int32(1))
 	router.On("RunMode", mock.Anything).Return(loafergo.Parallel).Maybe()
-	router.On("GetMessages", mock.Anything).Return(nil, errors.New("temporary error")).Once()
-	router.On("GetMessages", mock.Anything).Return(nil, context.Canceled).Maybe()
-
-	logger := new(fake.Logger)
-	logger.On("Log", mock.Anything).Return()
+	router.On("GetMessages", mock.Anything, logger).Return(nil, errors.New("temporary error")).Once()
+	router.On("GetMessages", mock.Anything, logger).Return(nil, context.Canceled).Maybe()
 
 	manager := loafergo.NewManager(&loafergo.Config{
 		Logger:       logger,

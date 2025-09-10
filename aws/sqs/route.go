@@ -2,6 +2,7 @@ package sqs
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
@@ -91,7 +92,7 @@ func (r *route) Configure(ctx context.Context) error {
 }
 
 // GetMessages gets messages from queue
-func (r *route) GetMessages(ctx context.Context) (messages []loafergo.Message, err error) {
+func (r *route) GetMessages(ctx context.Context, logger loafergo.Logger) (messages []loafergo.Message, err error) {
 	output, err := r.sqs.ReceiveMessage(
 		ctx,
 		&sqs.ReceiveMessageInput{
@@ -110,7 +111,7 @@ func (r *route) GetMessages(ctx context.Context) (messages []loafergo.Message, e
 		msg := newMessage(m)
 		messages = append(messages, msg)
 		// change the message visibility
-		go r.changeMessageVisibility(ctx, msg)
+		go r.changeMessageVisibility(ctx, msg, logger)
 	}
 
 	return
@@ -165,14 +166,14 @@ func (r *route) CustomGroupFields(ctx context.Context) []string {
 	return r.customGroupFields
 }
 
-func (r *route) changeMessageVisibility(ctx context.Context, m *message) {
+func (r *route) changeMessageVisibility(ctx context.Context, m *message, logger loafergo.Logger) {
 	var count int
 	extension := r.visibilityTimeout
 	sleepTime := time.Duration(r.visibilityTimeout-defaultVisibilityTimeoutControl) * time.Second
 	ticker := time.NewTicker(sleepTime)
 	defer ticker.Stop()
 
-	r.doChangeVisibilityTimeout(ctx, m, extension)
+	r.doChangeVisibilityTimeout(ctx, m, extension, logger)
 
 	for {
 		// only allow extensionLimit extension (Default 1m30s)
@@ -182,7 +183,7 @@ func (r *route) changeMessageVisibility(ctx context.Context, m *message) {
 
 		select {
 		case d := <-m.backoffChannel:
-			r.doChangeVisibilityTimeout(ctx, m, int32(d.Seconds()))
+			r.doChangeVisibilityTimeout(ctx, m, int32(d.Seconds()), logger)
 			return
 		case <-m.dispatched:
 			return
@@ -190,23 +191,28 @@ func (r *route) changeMessageVisibility(ctx context.Context, m *message) {
 			count++
 			// double the allowed processing time
 			extension += r.visibilityTimeout
-			r.doChangeVisibilityTimeout(ctx, m, extension)
+			r.doChangeVisibilityTimeout(ctx, m, extension, logger)
 		}
 	}
 }
 
-func (r *route) doChangeVisibilityTimeout(ctx context.Context, m *message, timeout int32) {
-	if timeout <= 0 {
+func (r *route) doChangeVisibilityTimeout(ctx context.Context, m *message, timeout int32, logger loafergo.Logger) {
+	if timeout < 0 {
 		timeout = 0
 	}
 
-	//https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_ChangeMessageVisibility.html
+	// https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_ChangeMessageVisibility.html
 	maxLimit := int32((12 * time.Hour).Seconds())
 	if timeout > maxLimit {
 		timeout = maxLimit
 	}
 
-	_, _ = r.sqs.ChangeMessageVisibility(
+	logMsg := fmt.Sprintf(
+		"change_visibility_timeout; queueUrl: %s; receipt_hendler: %s; timeout: %ds",
+		r.queueURL, *m.originalMessage.ReceiptHandle, timeout,
+	)
+	logger.Log(logMsg)
+	_, err := r.sqs.ChangeMessageVisibility(
 		ctx,
 		&sqs.ChangeMessageVisibilityInput{
 			QueueUrl:          &r.queueURL,
@@ -214,6 +220,13 @@ func (r *route) doChangeVisibilityTimeout(ctx context.Context, m *message, timeo
 			VisibilityTimeout: timeout,
 		},
 	)
+	if err != nil {
+		logMsg = fmt.Sprintf(
+			"change_visibility_timeout_error: %v; queueUrl: %s; receipt_hendler: %s; timeout: %ds",
+			err, r.queueURL, *m.originalMessage.ReceiptHandle, timeout,
+		)
+		logger.Log(logMsg)
+	}
 
 	done, ok := ctx.Value(DoneCtxKey{}).(chan bool)
 	if ok {

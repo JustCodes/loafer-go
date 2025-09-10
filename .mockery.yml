@@ -1,0 +1,11 @@
+force-file-write: true
+formatter: goimports
+structname: "{{.InterfaceName}}"
+filename: "{{.InterfaceName}}.go"
+pkgname: fake
+dir: "{{.InterfaceDir}}/fake"
+inpackage: false
+all: true
+recursive: true
+packages:
+  github.com/justcodes/loafer-go/v2:

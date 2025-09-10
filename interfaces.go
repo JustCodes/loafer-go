@@ -11,7 +11,7 @@ import (
 // Router holds the Route methods to configure and run
 type Router interface {
 	Configure(ctx context.Context) error
-	GetMessages(ctx context.Context) ([]Message, error)
+	GetMessages(ctx context.Context, logger Logger) ([]Message, error)
 	HandlerMessage(ctx context.Context, msg Message) error
 	Commit(ctx context.Context, m Message) error
 	WorkerPoolSize(ctx context.Context) int32

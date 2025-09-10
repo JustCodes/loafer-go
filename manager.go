@@ -89,7 +89,7 @@ func (m *Manager) runRoute(ctx context.Context, r Router) {
 			m.config.Logger.Log("Context canceled; shutting down route.")
 			return
 		default:
-			msgs, err := r.GetMessages(ctx)
+			msgs, err := r.GetMessages(ctx, m.config.Logger)
 			if err != nil {
 				m.config.Logger.Log(fmt.Sprintf("%s, retrying in %.2fs", ErrGetMessage.Context(err).Error(), m.config.RetryTimeout.Seconds()))
 				select {

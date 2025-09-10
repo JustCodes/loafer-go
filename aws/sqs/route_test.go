@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsSqs "github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
 	loafergo "github.com/justcodes/loafer-go/v2"
@@ -113,6 +114,9 @@ func (suite *routeSuite) TestConfigure() {
 }
 
 func (suite *routeSuite) TestGetMessages() {
+	logger := new(fake.Logger)
+	logger.On("Log", mock.Anything).Return()
+
 	suite.Run("Should return the messages", func() {
 		suite.route = suite.setupRouter()
 		ctx, done := setupContext(1)
@@ -145,7 +149,7 @@ func (suite *routeSuite) TestGetMessages() {
 			VisibilityTimeout: int32(12),
 		}).Return(nil, nil).Once()
 
-		messages, err := suite.route.GetMessages(ctx)
+		messages, err := suite.route.GetMessages(ctx, logger)
 		suite.NoError(err)
 		<-done
 
@@ -176,7 +180,7 @@ func (suite *routeSuite) TestGetMessages() {
 			Once()
 
 		done <- true // wont call change message visibility
-		messages, err := suite.route.GetMessages(ctx)
+		messages, err := suite.route.GetMessages(ctx, logger)
 		suite.NotNil(err)
 
 		suite.Len(messages, 0)
@@ -194,6 +198,9 @@ func setupContext(amountOfVisibilityChangesExpected int) (context.Context, chan 
 }
 
 func (suite *routeSuite) TestCommit() {
+	logger := new(fake.Logger)
+	logger.On("Log", mock.Anything).Return()
+
 	suite.Run("Should commit commit", func() {
 		suite.route = suite.setupRouter()
 		ctx, done := setupContext(1)
@@ -226,7 +233,7 @@ func (suite *routeSuite) TestCommit() {
 			VisibilityTimeout: int32(12),
 		}).Return(nil, nil).Once()
 
-		message, err := suite.route.GetMessages(ctx)
+		message, err := suite.route.GetMessages(ctx, logger)
 		suite.NoError(err)
 
 		<-done
@@ -275,7 +282,7 @@ func (suite *routeSuite) TestCommit() {
 			VisibilityTimeout: int32(12),
 		}).Return(nil, nil).Once()
 
-		message, err := suite.route.GetMessages(ctx)
+		message, err := suite.route.GetMessages(ctx, logger)
 		suite.NoError(err)
 
 		<-done
@@ -295,6 +302,9 @@ func (suite *routeSuite) TestCommit() {
 }
 
 func (suite *routeSuite) TestHandlerMessage() {
+	logger := new(fake.Logger)
+	logger.On("Log", mock.Anything).Return()
+
 	suite.Run("should handler message", func() {
 		suite.route = suite.setupRouter()
 		ctx, done := setupContext(1)
@@ -327,7 +337,8 @@ func (suite *routeSuite) TestHandlerMessage() {
 			VisibilityTimeout: int32(12),
 		}).Return(nil, nil).Once()
 
-		message, err := suite.route.GetMessages(ctx)
+		message, err := suite.route.GetMessages(ctx, logger)
+		suite.NoError(err)
 		suite.NoError(err)
 
 		<-done
@@ -368,7 +379,7 @@ func (suite *routeSuite) TestHandlerMessage() {
 			VisibilityTimeout: int32(12),
 		}).Return(nil, nil).Once()
 
-		message, err := suite.route.GetMessages(ctx)
+		message, err := suite.route.GetMessages(ctx, logger)
 		suite.NoError(err)
 
 		<-done
@@ -455,6 +466,9 @@ func (suite *routeSuite) TestCustomGroupFields() {
 }
 
 func (suite *routeSuite) TestChangeVisibilityInitially() {
+	logger := new(fake.Logger)
+	logger.On("Log", mock.Anything).Return()
+
 	suite.Run("should change visibility timeout initially", func() {
 		visibilityTimeout := 30
 		suite.route = sqs.NewRoute(&sqs.Config{
@@ -506,7 +520,7 @@ func (suite *routeSuite) TestChangeVisibilityInitially() {
 			VisibilityTimeout: int32(visibilityTimeout),
 		}).Return(nil, nil).Once()
 
-		messages, err := suite.route.GetMessages(ctx)
+		messages, err := suite.route.GetMessages(ctx, logger)
 		suite.NoError(err)
 
 		<-done
@@ -528,6 +542,9 @@ func (suite *routeSuite) TestChangeVisibilityInitially() {
 }
 
 func (suite *routeSuite) TestChangeVisibilityTimeout() {
+	logger := new(fake.Logger)
+	logger.On("Log", mock.Anything).Return()
+
 	suite.Run("should change visibility timeout when handler takes time to handle msg", func() {
 		visibilityTimeout := 11 // sleepTime of ticker will be 1s
 		suite.route = sqs.NewRoute(&sqs.Config{
@@ -586,7 +603,7 @@ func (suite *routeSuite) TestChangeVisibilityTimeout() {
 			VisibilityTimeout: int32(visibilityTimeout) * 2,
 		}).Return(nil, nil).Once()
 
-		messages, err := suite.route.GetMessages(ctx)
+		messages, err := suite.route.GetMessages(ctx, logger)
 		suite.NoError(err)
 
 		<-done
@@ -608,6 +625,9 @@ func (suite *routeSuite) TestChangeVisibilityTimeout() {
 }
 
 func (suite *routeSuite) TestBackoff() {
+	logger := new(fake.Logger)
+	logger.On("Log", mock.Anything).Return()
+
 	suite.Run("should change visibility timeout initially and when backoff is called", func() {
 		visibilityTimeout := 30
 		backoffTimeout := 10
@@ -668,7 +688,7 @@ func (suite *routeSuite) TestBackoff() {
 			VisibilityTimeout: int32(backoffTimeout),
 		}).Return(nil, nil).Once()
 
-		messages, err := suite.route.GetMessages(ctx)
+		messages, err := suite.route.GetMessages(ctx, logger)
 		suite.NoError(err)
 
 		msg := messages[0]

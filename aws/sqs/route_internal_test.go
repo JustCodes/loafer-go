@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
+	"github.com/stretchr/testify/mock"
 
 	loafergo "github.com/justcodes/loafer-go/v2"
 	"github.com/justcodes/loafer-go/v2/fake"
@@ -28,6 +29,8 @@ func TestRouteChangeMessageVisibility(t *testing.T) {
 			ReceiptHandle: aws.String("receipt-handler"),
 		},
 	}
+	logger := new(fake.Logger)
+	logger.On("Log", mock.Anything).Return()
 
 	t.Run("Should stop changeMessageVisibility when dipatch messages", func(t *testing.T) {
 		r := &route{
@@ -57,7 +60,7 @@ func TestRouteChangeMessageVisibility(t *testing.T) {
 			Return(&sqs.ChangeMessageVisibilityOutput{}, nil)
 
 		ctx := context.Background()
-		go r.changeMessageVisibility(ctx, m)
+		go r.changeMessageVisibility(ctx, m, logger)
 		time.Sleep(1002 * time.Millisecond)
 		m.Dispatch()
 	})
@@ -94,7 +97,7 @@ func TestRouteChangeMessageVisibility(t *testing.T) {
 			Return(&sqs.ChangeMessageVisibilityOutput{}, nil)
 
 		ctx := context.Background()
-		r.changeMessageVisibility(ctx, m)
+		r.changeMessageVisibility(ctx, m, logger)
 	})
 
 }
