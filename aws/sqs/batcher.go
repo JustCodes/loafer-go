@@ -18,41 +18,33 @@ const (
 	// It matches the ReceiveMessage MaxNumberOfMessages ceiling, so a full receive batch
 	// collapses into a single delete call.
 	maxDeleteBatchSize = 10
-	// defaultDeleteLinger is the linger applied when RouteWithDeleteBatch gets a non positive value.
-	defaultDeleteLinger = 50 * time.Millisecond
-	// minDeleteLinger and maxDeleteLinger bound the configured linger.
-	minDeleteLinger = 10 * time.Millisecond
-	maxDeleteLinger = 5 * time.Second
 	// deleteRetryLimit is how many extra attempts a batch gets after a server side failure.
 	deleteRetryLimit = 2
 	// deleteRetryBackoff is the base delay between delete attempts.
 	deleteRetryBackoff = 50 * time.Millisecond
-	// shutdownFlushTimeout bounds the final flush performed when the route context is canceled.
-	shutdownFlushTimeout = 5 * time.Second
+	// flushTimeout bounds a flush, retries included. Flushes run detached from the route
+	// context, so this is what keeps a hung request from stalling the batcher forever.
+	flushTimeout = 5 * time.Second
 	// messageGroupIDAttr is the FIFO group system attribute, used only for logging.
 	messageGroupIDAttr = "MessageGroupId"
 )
 
-// deleteItem carries one message into the batcher. flush marks the message as the last
-// in-flight one of a receive cycle, which triggers an immediate flush instead of waiting
-// for the linger to expire.
-type deleteItem struct {
-	msg   loafergo.Message
-	flush bool
-}
-
 // deleteBatcher groups DeleteMessage calls into DeleteMessageBatch requests.
+//
+// Batching is opportunistic: there is no timer. The batcher blocks for the first pending
+// delete, takes whatever else is already queued - up to 10 - and sends it right away. Under
+// load the deletes committed while a request is in flight pile up and the next request goes
+// out full; under light load a request carries a single entry, so no delete ever waits for
+// another message and FIFO groups pay no added latency.
 //
 // A single goroutine owns the pending batch, so no locking is needed around it. The mutex
 // only guards the closed flag, which makes enqueue safe against a concurrent shutdown.
 type deleteBatcher struct {
 	sqs      loafergo.SQSClient
 	logger   loafergo.Logger
-	in       chan deleteItem
-	pokeCh   chan struct{}
+	in       chan loafergo.Message
 	done     chan struct{}
 	queueURL string
-	linger   time.Duration
 	mu       sync.RWMutex
 	closed   bool
 }
@@ -61,16 +53,13 @@ func newDeleteBatcher(
 	client loafergo.SQSClient,
 	logger loafergo.Logger,
 	queueURL string,
-	linger time.Duration,
 	capacity int,
 ) *deleteBatcher {
 	return &deleteBatcher{
 		sqs:      client,
 		logger:   logger,
 		queueURL: queueURL,
-		linger:   linger,
-		in:       make(chan deleteItem, capacity),
-		pokeCh:   make(chan struct{}, 1),
+		in:       make(chan loafergo.Message, capacity),
 		done:     make(chan struct{}),
 	}
 }
@@ -78,7 +67,7 @@ func newDeleteBatcher(
 // enqueue hands a message to the batcher. It never blocks: it reports false when the
 // batcher is already shut down or its buffer is saturated, and the caller is then
 // expected to fall back to a single DeleteMessage call.
-func (b *deleteBatcher) enqueue(it deleteItem) bool {
+func (b *deleteBatcher) enqueue(msg loafergo.Message) bool {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 
@@ -87,97 +76,76 @@ func (b *deleteBatcher) enqueue(it deleteItem) bool {
 	}
 
 	select {
-	case b.in <- it:
+	case b.in <- msg:
 		return true
 	default:
 		return false
 	}
 }
 
-// poke asks for an immediate flush of whatever is pending. It is used when a message
-// leaves the route without being committed (handler error or backoff) and happens to be
-// the last one in flight.
-func (b *deleteBatcher) poke() {
-	select {
-	case b.pokeCh <- struct{}{}:
-	default:
-	}
-}
-
-// run owns the pending batch until ctx is canceled. It must be started exactly once.
+// run sends deletes until ctx is canceled. It must be started exactly once.
 func (b *deleteBatcher) run(ctx context.Context) {
 	defer close(b.done)
 
 	batch := make([]loafergo.Message, 0, maxDeleteBatchSize)
-	timer := time.NewTimer(b.linger)
-	stopTimer(timer)
-	armed := false
-
 	for {
 		select {
 		case <-ctx.Done():
-			b.shutdown(ctx, batch)
+			b.shutdown(ctx)
 			return
-		case it := <-b.in:
-			batch = append(batch, it.msg)
-			if it.flush || len(batch) >= maxDeleteBatchSize {
-				b.flushPending(ctx, batch)
-				batch = batch[:0]
-			}
-		case <-b.pokeCh:
-			// A poke means the route has nothing left in flight, so anything already
-			// queued belongs to this flush. Without the drain it would race with the
-			// send and sit waiting for the linger instead.
-			batch = b.drainInto(batch)
-			b.flushPending(ctx, batch)
-			batch = batch[:0]
-		case <-timer.C:
-			armed = false
-			b.flushPending(ctx, batch)
-			batch = batch[:0]
-		}
-
-		switch {
-		case len(batch) > 0 && !armed:
-			timer.Reset(b.linger)
-			armed = true
-		case len(batch) == 0 && armed:
-			stopTimer(timer)
-			armed = false
+		case msg := <-b.in:
+			batch = b.collect(append(batch[:0], msg))
+			b.flushDetached(ctx, batch)
 		}
 	}
 }
 
-// shutdown drains whatever is still in flight and performs a last flush on a context
-// detached from the canceled one, so pending deletes are not silently lost.
-func (b *deleteBatcher) shutdown(ctx context.Context, batch []loafergo.Message) {
+// collect adds to batch whatever is already queued, without blocking, up to a full request.
+func (b *deleteBatcher) collect(batch []loafergo.Message) []loafergo.Message {
+	for len(batch) < maxDeleteBatchSize {
+		select {
+		case msg := <-b.in:
+			batch = append(batch, msg)
+		default:
+			return batch
+		}
+	}
+	return batch
+}
+
+// shutdown drains whatever is still queued and flushes it, so pending deletes are not
+// silently lost.
+func (b *deleteBatcher) shutdown(ctx context.Context) {
 	b.mu.Lock()
 	b.closed = true
 	b.mu.Unlock()
 
 	// Every enqueue either observed closed and fell back to a single delete, or already
 	// landed in the buffer and is picked up here. There is no third case.
-	batch = b.drainInto(batch)
-
-	if len(batch) == 0 {
-		return
+	if batch := b.drainAll(); len(batch) > 0 {
+		b.flushDetached(ctx, batch)
 	}
-
-	flushCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), shutdownFlushTimeout)
-	defer cancel()
-	b.flushPending(flushCtx, batch)
 }
 
-// drainInto moves every message already queued into batch, without blocking.
-func (b *deleteBatcher) drainInto(batch []loafergo.Message) []loafergo.Message {
+// drainAll takes every message already queued, without blocking.
+func (b *deleteBatcher) drainAll() []loafergo.Message {
+	var batch []loafergo.Message
 	for {
 		select {
-		case it := <-b.in:
-			batch = append(batch, it.msg)
+		case msg := <-b.in:
+			batch = append(batch, msg)
 		default:
 			return batch
 		}
 	}
+}
+
+// flushDetached flushes on a context detached from ctx: a delete already taken off the queue
+// must not be aborted by the route shutting down, or the message is redelivered.
+func (b *deleteBatcher) flushDetached(ctx context.Context, batch []loafergo.Message) {
+	flushCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), flushTimeout)
+	defer cancel()
+	b.flushPending(flushCtx, batch)
 }
 
 // flushPending deletes every pending message, splitting it into requests of at most
@@ -323,15 +291,6 @@ func buildDeleteEntries(pending []loafergo.Message) []types.DeleteMessageBatchRe
 func dispatchAll(msgs []loafergo.Message) {
 	for _, msg := range msgs {
 		msg.Dispatch()
-	}
-}
-
-func stopTimer(t *time.Timer) {
-	if !t.Stop() {
-		select {
-		case <-t.C:
-		default:
-		}
 	}
 }
 

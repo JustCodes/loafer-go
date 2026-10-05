@@ -87,7 +87,7 @@ func TestRoute_DeleteBatchDisabledPropagatesTheDeleteError(t *testing.T) {
 
 // Commit must not block the worker and must not issue a single-message delete.
 func TestRoute_CommitIsAsynchronousWhenBatchingIsEnabled(t *testing.T) {
-	r, client := newTestRoute(t, "test-queue", RouteWithDeleteBatch(time.Hour))
+	r, client := newTestRoute(t, "test-queue", RouteWithDeleteBatch())
 	require.NotNil(t, r.batcher)
 
 	client.On("DeleteMessageBatch", mock.Anything, mock.Anything).Return(
@@ -110,11 +110,10 @@ func TestRoute_CommitIsAsynchronousWhenBatchingIsEnabled(t *testing.T) {
 	client.AssertNotCalled(t, "DeleteMessage", mock.Anything, mock.Anything)
 }
 
-// The whole point of the in-flight counter: a full receive cycle collapses into one call
-// as soon as the last message is committed, without paying the linger.
-func TestRoute_FlushesWhenTheReceiveCycleEnds(t *testing.T) {
-	// an hour of linger proves the flush came from the in-flight counter, not the timer
-	r, client := newTestRoute(t, "test-queue", RouteWithDeleteBatch(time.Hour))
+// Each Commit is sent as soon as the batcher is free: a message never waits on another one
+// of its receive, which is what keeps FIFO groups and slow siblings decoupled.
+func TestRoute_CommitIsDeletedWithoutWaitingForTheRestOfTheReceive(t *testing.T) {
+	r, client := newTestRoute(t, "test-queue", RouteWithDeleteBatch())
 
 	client.On("ReceiveMessage", mock.Anything, mock.Anything).Return(receiveOutput(3), nil).Once()
 
@@ -131,52 +130,25 @@ func TestRoute_FlushesWhenTheReceiveCycleEnds(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, msgs, 3)
 
-	for _, m := range msgs {
-		require.NoError(t, r.Commit(ctx, m))
-	}
+	// the other two are still being handled
+	require.NoError(t, r.Commit(ctx, msgs[0]))
 
 	select {
 	case entries := <-batches:
-		assert.Len(t, entries, 3)
+		assert.Equal(t, []string{"handle-a"}, entryHandles(entries))
 	case <-time.After(time.Second):
-		t.Fatal("the batch was not flushed when the receive cycle ended")
+		t.Fatal("the delete waited for the rest of the receive")
 	}
 	client.AssertNotCalled(t, "DeleteMessage", mock.Anything, mock.Anything)
-}
 
-// A handler error resolves the message too, so it must release the batch of its siblings.
-func TestRoute_HandlerErrorReleasesThePendingBatch(t *testing.T) {
-	r, client := newTestRoute(t, "test-queue", RouteWithDeleteBatch(time.Hour))
-	wantErr := errors.New("handler failed")
-	r.handler = func(context.Context, loafergo.Message) error { return wantErr }
-
-	client.On("ReceiveMessage", mock.Anything, mock.Anything).Return(receiveOutput(2), nil).Once()
-
-	batches := make(chan []types.DeleteMessageBatchRequestEntry, 4)
-	client.On("DeleteMessageBatch", mock.Anything, mock.Anything).Return(
-		func(_ context.Context, in *awsSqs.DeleteMessageBatchInput,
-			_ ...func(*awsSqs.Options)) (*awsSqs.DeleteMessageBatchOutput, error) {
-			batches <- in.Entries
-			return allSuccessful(in), nil
-		})
-
-	ctx := context.Background()
-	msgs, err := r.GetMessages(ctx, loafergo.NoOpLogger{})
-	require.NoError(t, err)
-
-	require.NoError(t, r.Commit(ctx, msgs[0]))
-	assert.ErrorIs(t, r.HandlerMessage(ctx, msgs[1]), wantErr)
-
-	select {
-	case entries := <-batches:
-		assert.Len(t, entries, 1, "only the committed message is deleted")
-	case <-time.After(time.Second):
-		t.Fatal("the pending batch was never flushed")
+	// stop the visibility watchdog of the two messages left unhandled
+	for _, m := range msgs[1:] {
+		m.Dispatch()
 	}
 }
 
 func TestRoute_BackedOffMessageIsNeverDeleted(t *testing.T) {
-	r, client := newTestRoute(t, "test-queue", RouteWithDeleteBatch(20*time.Millisecond))
+	r, client := newTestRoute(t, "test-queue", RouteWithDeleteBatch())
 
 	msg := testMessage("handle-a")
 	msg.backedOff = true
@@ -200,7 +172,7 @@ func TestRoute_FallsBackToSingleDeleteAfterShutdown(t *testing.T) {
 		SQSClient: client,
 		QueueName: "test-queue",
 		Handler:   func(context.Context, loafergo.Message) error { return nil },
-	}, RouteWithDeleteBatch(time.Hour)).(*route)
+	}, RouteWithDeleteBatch()).(*route)
 	require.True(t, ok)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -210,31 +182,6 @@ func TestRoute_FallsBackToSingleDeleteAfterShutdown(t *testing.T) {
 
 	require.NoError(t, r.Commit(context.Background(), testMessage("handle-a")))
 	client.AssertExpectations(t)
-}
-
-func TestRoute_ClampsTheDeleteLinger(t *testing.T) {
-	tests := map[string]struct {
-		linger            time.Duration
-		visibilityTimeout int32
-		want              time.Duration
-	}{
-		"zero falls back to the default":        {0, 300, defaultDeleteLinger},
-		"negative falls back to the default":    {-time.Second, 300, defaultDeleteLinger},
-		"below the minimum is raised":           {time.Millisecond, 300, minDeleteLinger},
-		"above the maximum is capped":           {time.Hour, 300, maxDeleteLinger},
-		"capped to a quarter of the timeout":    {time.Hour, 12, 3 * time.Second},
-		"within the visibility budget it stays": {2 * time.Second, 12, 2 * time.Second},
-		"a valid value is preserved":            {200 * time.Millisecond, 300, 200 * time.Millisecond},
-	}
-
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			got := clampDeleteLinger(tc.linger, tc.visibilityTimeout)
-			assert.LessOrEqual(t, got, maxDeleteLinger)
-			assert.GreaterOrEqual(t, got, minDeleteLinger)
-			assert.Equal(t, tc.want, got)
-		})
-	}
 }
 
 // Dispatch is called from the batcher, the fallback path and the handler error path; a

@@ -2,7 +2,6 @@ package sqs
 
 import (
 	"strconv"
-	"time"
 
 	loafergo "github.com/justcodes/loafer-go/v2"
 )
@@ -20,9 +19,6 @@ const (
 	defaultMaxMessages       = int32(10)
 	defaultWaitTimeSeconds   = int32(10)
 	defaultWorkerPoolSize    = int32(5)
-	// deleteLingerVisibilityDivisor keeps the delete linger to a fraction of the route
-	// visibility timeout, so a pending batch never eats the watchdog renewal budget.
-	deleteLingerVisibilityDivisor = 4
 )
 
 // RouteConfig are a discrete set of route options that are valid for loading the route configuration
@@ -30,7 +26,6 @@ type RouteConfig struct {
 	logger             loafergo.Logger
 	customGroupFields  []string
 	extensionLimit     int
-	deleteLinger       time.Duration
 	runMode            loafergo.Mode
 	visibilityTimeout  int32
 	maxMessages        int32
@@ -49,26 +44,6 @@ func loadDefaultRouteConfig() *RouteConfig {
 		runMode:           loafergo.Parallel,
 		logger:            loafergo.NoOpLogger{},
 	}
-}
-
-// clampDeleteLinger bounds the configured linger to a safe window: never so short that it
-// defeats the batching, never long enough to compromise the visibility timeout budget the
-// watchdog works with, nor to stall a FIFO message group for a noticeable time.
-func clampDeleteLinger(linger time.Duration, visibilityTimeout int32) time.Duration {
-	if linger <= 0 {
-		linger = defaultDeleteLinger
-	}
-	if linger < minDeleteLinger {
-		linger = minDeleteLinger
-	}
-	if linger > maxDeleteLinger {
-		linger = maxDeleteLinger
-	}
-	budget := time.Duration(visibilityTimeout) * time.Second / deleteLingerVisibilityDivisor
-	if linger > budget {
-		linger = budget
-	}
-	return linger
 }
 
 // LoadRouteConfigFunc is a type alias for RouteConfig functional config
@@ -181,23 +156,17 @@ func RouteWithCustomGroupFields(v []string) LoadRouteConfigFunc {
 // and returns nil right away, so workers never block waiting on a delete. The outcome of
 // the delete is reported through the logger set with RouteWithLogger.
 //
-// A batch is flushed as soon as it holds 10 messages - the AWS limit, which matches the
-// MaxNumberOfMessages ceiling - or as soon as the last message of a receive cycle is
-// committed. In the common case that means one DeleteMessageBatch per ReceiveMessage with
-// no added latency at all; linger is only the safety net for when a slow handler is
-// holding the batch back.
+// Batching is opportunistic, with no timer: a delete is sent as soon as the batcher is free,
+// together with whatever else was committed while the previous request was in flight, up
+// to the AWS limit of 10. Under load requests go out full; under light load they carry a
+// single entry, so no delete waits on another message and FIFO message groups are not held
+// back.
 //
-// A non positive linger falls back to 50ms. The value is clamped to [10ms, 5s] and to a
-// quarter of the route visibility timeout.
-//
-// On FIFO queues a delayed delete holds the whole MessageGroupId, since SQS does not
-// deliver the next message of a group while one is still in flight. Keep the linger small
-// there, and note that handlers must be idempotent: a delete pending at crash time means
-// the message is redelivered.
-func RouteWithDeleteBatch(linger time.Duration) LoadRouteConfigFunc {
+// Handlers must be idempotent: a delete still pending when the process dies means the
+// message is redelivered.
+func RouteWithDeleteBatch() LoadRouteConfigFunc {
 	return func(rc *RouteConfig) {
 		rc.deleteBatchEnabled = true
-		rc.deleteLinger = linger
 	}
 }
 

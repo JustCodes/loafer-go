@@ -139,7 +139,7 @@ func TestIntegrationDeleteBatchAgainstLocalStack(t *testing.T) {
 		loafersqs.RouteWithMaxMessages(10),
 		loafersqs.RouteWithWaitTimeSeconds(1),
 		loafersqs.RouteWithVisibilityTimeout(30),
-		loafersqs.RouteWithDeleteBatch(50*time.Millisecond),
+		loafersqs.RouteWithDeleteBatch(),
 	)
 
 	manager := loafergo.NewManager(&loafergo.Config{Logger: loafergo.NoOpLogger{}})
@@ -234,7 +234,7 @@ func TestIntegrationDeleteBatchFIFOAgainstLocalStack(t *testing.T) {
 		loafersqs.RouteWithWaitTimeSeconds(1),
 		loafersqs.RouteWithVisibilityTimeout(30),
 		loafersqs.RouteWithRunMode(loafergo.PerGroupID),
-		loafersqs.RouteWithDeleteBatch(50*time.Millisecond),
+		loafersqs.RouteWithDeleteBatch(),
 	)
 
 	manager := loafergo.NewManager(&loafergo.Config{Logger: loafergo.NoOpLogger{}})

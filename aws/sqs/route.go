@@ -3,9 +3,7 @@ package sqs
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
@@ -17,10 +15,6 @@ import (
 const (
 	all                             = "All"
 	defaultVisibilityTimeoutControl = 10
-	fifoQueueSuffix                 = ".fifo"
-	// fifoLingerWarn is the linger above which batching deletes starts to noticeably
-	// throttle a single FIFO message group.
-	fifoLingerWarn = 100 * time.Millisecond
 	// deleteBufferHeadroom multiplies the delete buffer so a flush in flight does not
 	// push Commit onto the single delete fallback.
 	deleteBufferHeadroom = 4
@@ -35,9 +29,7 @@ type route struct {
 	queueURL           string
 	customGroupFields  []string
 	extensionLimit     int
-	deleteLinger       time.Duration
 	runMode            loafergo.Mode
-	inFlight           atomic.Int64
 	batcherOnce        sync.Once
 	visibilityTimeout  int32
 	maxMessages        int32
@@ -90,7 +82,6 @@ func NewRoute(config *Config, optFns ...func(config *RouteConfig)) loafergo.Rout
 		runMode:            cfg.runMode,
 		customGroupFields:  cfg.customGroupFields,
 		deleteBatchEnabled: cfg.deleteBatchEnabled,
-		deleteLinger:       clampDeleteLinger(cfg.deleteLinger, cfg.visibilityTimeout),
 	}
 }
 
@@ -120,20 +111,13 @@ func (r *route) startDeleteBatcher(ctx context.Context) {
 	}
 
 	r.batcherOnce.Do(func() {
-		if strings.HasSuffix(r.queueName, fifoQueueSuffix) && r.deleteLinger > fifoLingerWarn {
-			r.logger.Log(fmt.Sprintf(
-				"delete_batch_fifo_warning: a linger of %s delays the next message of every message group; queue: %s",
-				r.deleteLinger, r.queueName,
-			))
-		}
-
 		// The buffer has to absorb everything the route hands over while the flusher is
 		// blocked on a delete round trip, which is more than one receive batch plus one
 		// in-flight Commit per worker. Benchmarking 2000 messages showed a buffer that
 		// size saturating and falling back to single deletes; the headroom below removes
 		// it, and costs only a few hundred pointers.
 		capacity := deleteBufferHeadroom * (int(r.maxMessages) + int(r.workerPoolSize) + maxDeleteBatchSize)
-		b := newDeleteBatcher(r.sqs, r.logger, r.queueURL, r.deleteLinger, capacity)
+		b := newDeleteBatcher(r.sqs, r.logger, r.queueURL, capacity)
 		r.batcher = b
 		go b.run(ctx)
 	})
@@ -156,8 +140,6 @@ func (r *route) GetMessages(ctx context.Context, logger loafergo.Logger) (messag
 		return
 	}
 
-	r.inFlight.Add(int64(len(output.Messages)))
-
 	for _, m := range output.Messages {
 		msg := newMessage(m)
 		messages = append(messages, msg)
@@ -176,26 +158,14 @@ func (r *route) GetMessages(ctx context.Context, logger loafergo.Logger) (messag
 func (r *route) Commit(ctx context.Context, m loafergo.Message) error {
 	// if the handler backed off the message, we should not delete it
 	if m.BackedOff() {
-		if r.messageDone() && r.batcher != nil {
-			r.batcher.poke()
-		}
 		return nil
 	}
 
-	if b := r.batcher; b != nil {
-		last := r.messageDone()
-		if b.enqueue(deleteItem{msg: m, flush: last}) {
-			return nil
-		}
-		// The batcher is shutting down or saturated: keep the delete synchronous rather
-		// than dropping it or blocking the worker.
-		if last {
-			b.poke()
-		}
-		return r.deleteMessage(ctx, m)
+	// The batcher refuses when it is shutting down or saturated: keep the delete synchronous
+	// then, rather than dropping it or blocking the worker.
+	if r.batcher != nil && r.batcher.enqueue(m) {
+		return nil
 	}
-
-	r.messageDone()
 	return r.deleteMessage(ctx, m)
 }
 
@@ -210,21 +180,11 @@ func (r *route) deleteMessage(ctx context.Context, m loafergo.Message) error {
 	return err
 }
 
-// messageDone accounts for one message leaving the route - committed, backed off or failed
-// in the handler - and reports whether it was the last one of the current receive cycle.
-// That is the signal the batcher uses to flush without waiting for the linger.
-func (r *route) messageDone() bool {
-	return r.inFlight.Add(-1) <= 0
-}
-
 // HandlerMessage consumes the message from the queue
 func (r *route) HandlerMessage(ctx context.Context, msg loafergo.Message) error {
 	err := r.handler(ctx, msg)
 	if err != nil {
 		msg.Dispatch()
-		if r.messageDone() && r.batcher != nil {
-			r.batcher.poke()
-		}
 		return err
 	}
 	return nil
