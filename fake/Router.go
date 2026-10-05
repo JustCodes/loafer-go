@@ -64,7 +64,7 @@ type Router_Commit_Call struct {
 // Commit is a helper method to define mock.On call
 //   - ctx context.Context
 //   - m loafergo.Message
-func (_e *Router_Expecter) Commit(ctx interface{}, m interface{}) *Router_Commit_Call {
+func (_e *Router_Expecter) Commit(ctx any, m any) *Router_Commit_Call {
 	return &Router_Commit_Call{Call: _e.mock.On("Commit", ctx, m)}
 }
 
@@ -120,7 +120,7 @@ type Router_Configure_Call struct {
 
 // Configure is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *Router_Expecter) Configure(ctx interface{}) *Router_Configure_Call {
+func (_e *Router_Expecter) Configure(ctx any) *Router_Configure_Call {
 	return &Router_Configure_Call{Call: _e.mock.On("Configure", ctx)}
 }
 
@@ -173,7 +173,7 @@ type Router_CustomGroupFields_Call struct {
 
 // CustomGroupFields is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *Router_Expecter) CustomGroupFields(ctx interface{}) *Router_CustomGroupFields_Call {
+func (_e *Router_Expecter) CustomGroupFields(ctx any) *Router_CustomGroupFields_Call {
 	return &Router_CustomGroupFields_Call{Call: _e.mock.On("CustomGroupFields", ctx)}
 }
 
@@ -236,7 +236,7 @@ type Router_GetMessages_Call struct {
 // GetMessages is a helper method to define mock.On call
 //   - ctx context.Context
 //   - logger loafergo.Logger
-func (_e *Router_Expecter) GetMessages(ctx interface{}, logger interface{}) *Router_GetMessages_Call {
+func (_e *Router_Expecter) GetMessages(ctx any, logger any) *Router_GetMessages_Call {
 	return &Router_GetMessages_Call{Call: _e.mock.On("GetMessages", ctx, logger)}
 }
 
@@ -293,7 +293,7 @@ type Router_HandlerMessage_Call struct {
 // HandlerMessage is a helper method to define mock.On call
 //   - ctx context.Context
 //   - msg loafergo.Message
-func (_e *Router_Expecter) HandlerMessage(ctx interface{}, msg interface{}) *Router_HandlerMessage_Call {
+func (_e *Router_Expecter) HandlerMessage(ctx any, msg any) *Router_HandlerMessage_Call {
 	return &Router_HandlerMessage_Call{Call: _e.mock.On("HandlerMessage", ctx, msg)}
 }
 
@@ -349,7 +349,7 @@ type Router_RunMode_Call struct {
 
 // RunMode is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *Router_Expecter) RunMode(ctx interface{}) *Router_RunMode_Call {
+func (_e *Router_Expecter) RunMode(ctx any) *Router_RunMode_Call {
 	return &Router_RunMode_Call{Call: _e.mock.On("RunMode", ctx)}
 }
 
@@ -400,7 +400,7 @@ type Router_VisibilityTimeout_Call struct {
 
 // VisibilityTimeout is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *Router_Expecter) VisibilityTimeout(ctx interface{}) *Router_VisibilityTimeout_Call {
+func (_e *Router_Expecter) VisibilityTimeout(ctx any) *Router_VisibilityTimeout_Call {
 	return &Router_VisibilityTimeout_Call{Call: _e.mock.On("VisibilityTimeout", ctx)}
 }
 
@@ -451,7 +451,7 @@ type Router_WorkerPoolSize_Call struct {
 
 // WorkerPoolSize is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *Router_Expecter) WorkerPoolSize(ctx interface{}) *Router_WorkerPoolSize_Call {
+func (_e *Router_Expecter) WorkerPoolSize(ctx any) *Router_WorkerPoolSize_Call {
 	return &Router_WorkerPoolSize_Call{Call: _e.mock.On("WorkerPoolSize", ctx)}
 }
 

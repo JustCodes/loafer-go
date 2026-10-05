@@ -81,9 +81,9 @@ type SNSClient_Publish_Call struct {
 //   - ctx context.Context
 //   - params *sns.PublishInput
 //   - optFns ...func(*sns.Options)
-func (_e *SNSClient_Expecter) Publish(ctx interface{}, params interface{}, optFns ...interface{}) *SNSClient_Publish_Call {
+func (_e *SNSClient_Expecter) Publish(ctx any, params any, optFns ...any) *SNSClient_Publish_Call {
 	return &SNSClient_Publish_Call{Call: _e.mock.On("Publish",
-		append([]interface{}{ctx, params}, optFns...)...)}
+		append([]any{ctx, params}, optFns...)...)}
 }
 
 func (_c *SNSClient_Publish_Call) Run(run func(ctx context.Context, params *sns.PublishInput, optFns ...func(*sns.Options))) *SNSClient_Publish_Call {
@@ -164,9 +164,9 @@ type SNSClient_PublishBatch_Call struct {
 //   - ctx context.Context
 //   - params *sns.PublishBatchInput
 //   - optFns ...func(*sns.Options)
-func (_e *SNSClient_Expecter) PublishBatch(ctx interface{}, params interface{}, optFns ...interface{}) *SNSClient_PublishBatch_Call {
+func (_e *SNSClient_Expecter) PublishBatch(ctx any, params any, optFns ...any) *SNSClient_PublishBatch_Call {
 	return &SNSClient_PublishBatch_Call{Call: _e.mock.On("PublishBatch",
-		append([]interface{}{ctx, params}, optFns...)...)}
+		append([]any{ctx, params}, optFns...)...)}
 }
 
 func (_c *SNSClient_PublishBatch_Call) Run(run func(ctx context.Context, params *sns.PublishBatchInput, optFns ...func(*sns.Options))) *SNSClient_PublishBatch_Call {

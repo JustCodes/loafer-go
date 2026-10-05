@@ -2,6 +2,7 @@ package sqs
 
 import (
 	"encoding/json"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
@@ -19,6 +20,7 @@ type message struct {
 	backoffChannel  chan time.Duration
 	dispatched      chan bool
 	originalMessage types.Message
+	dispatchOnce    sync.Once
 	backedOff       bool
 }
 
@@ -95,7 +97,11 @@ func (m *message) SystemAttributes() map[string]string {
 }
 
 // Identifier is an identifier associated with the message ReceiptHandle.
+// It returns an empty string when the message carries no receipt handle.
 func (m *message) Identifier() string {
+	if m.originalMessage.ReceiptHandle == nil {
+		return ""
+	}
 	return *m.originalMessage.ReceiptHandle
 }
 
@@ -114,9 +120,15 @@ func (m *message) TimeStamp() time.Time {
 	return m.message.Timestamp
 }
 
-// Dispatch sets dispatched as true
+// Dispatch signals the visibility timeout watchdog that this message reached a
+// terminal state and it can stop extending the message visibility.
+//
+// It is idempotent: the dispatched channel is buffered with a single slot and is
+// read at most once by the watchdog, so a second send would block forever.
 func (m *message) Dispatch() {
-	m.dispatched <- true
+	m.dispatchOnce.Do(func() {
+		m.dispatched <- true
+	})
 }
 
 // Backoff sets the visibilityTimeout of the message,

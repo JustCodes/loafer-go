@@ -81,9 +81,9 @@ type SQSClient_ChangeMessageVisibility_Call struct {
 //   - ctx context.Context
 //   - params *sqs.ChangeMessageVisibilityInput
 //   - optFns ...func(*sqs.Options)
-func (_e *SQSClient_Expecter) ChangeMessageVisibility(ctx interface{}, params interface{}, optFns ...interface{}) *SQSClient_ChangeMessageVisibility_Call {
+func (_e *SQSClient_Expecter) ChangeMessageVisibility(ctx any, params any, optFns ...any) *SQSClient_ChangeMessageVisibility_Call {
 	return &SQSClient_ChangeMessageVisibility_Call{Call: _e.mock.On("ChangeMessageVisibility",
-		append([]interface{}{ctx, params}, optFns...)...)}
+		append([]any{ctx, params}, optFns...)...)}
 }
 
 func (_c *SQSClient_ChangeMessageVisibility_Call) Run(run func(ctx context.Context, params *sqs.ChangeMessageVisibilityInput, optFns ...func(*sqs.Options))) *SQSClient_ChangeMessageVisibility_Call {
@@ -164,9 +164,9 @@ type SQSClient_DeleteMessage_Call struct {
 //   - ctx context.Context
 //   - params *sqs.DeleteMessageInput
 //   - optFns ...func(*sqs.Options)
-func (_e *SQSClient_Expecter) DeleteMessage(ctx interface{}, params interface{}, optFns ...interface{}) *SQSClient_DeleteMessage_Call {
+func (_e *SQSClient_Expecter) DeleteMessage(ctx any, params any, optFns ...any) *SQSClient_DeleteMessage_Call {
 	return &SQSClient_DeleteMessage_Call{Call: _e.mock.On("DeleteMessage",
-		append([]interface{}{ctx, params}, optFns...)...)}
+		append([]any{ctx, params}, optFns...)...)}
 }
 
 func (_c *SQSClient_DeleteMessage_Call) Run(run func(ctx context.Context, params *sqs.DeleteMessageInput, optFns ...func(*sqs.Options))) *SQSClient_DeleteMessage_Call {
@@ -200,6 +200,89 @@ func (_c *SQSClient_DeleteMessage_Call) Return(deleteMessageOutput *sqs.DeleteMe
 }
 
 func (_c *SQSClient_DeleteMessage_Call) RunAndReturn(run func(ctx context.Context, params *sqs.DeleteMessageInput, optFns ...func(*sqs.Options)) (*sqs.DeleteMessageOutput, error)) *SQSClient_DeleteMessage_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeleteMessageBatch provides a mock function for the type SQSClient
+func (_mock *SQSClient) DeleteMessageBatch(ctx context.Context, params *sqs.DeleteMessageBatchInput, optFns ...func(*sqs.Options)) (*sqs.DeleteMessageBatchOutput, error) {
+	var tmpRet mock.Arguments
+	if len(optFns) > 0 {
+		tmpRet = _mock.Called(ctx, params, optFns)
+	} else {
+		tmpRet = _mock.Called(ctx, params)
+	}
+	ret := tmpRet
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteMessageBatch")
+	}
+
+	var r0 *sqs.DeleteMessageBatchOutput
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *sqs.DeleteMessageBatchInput, ...func(*sqs.Options)) (*sqs.DeleteMessageBatchOutput, error)); ok {
+		return returnFunc(ctx, params, optFns...)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *sqs.DeleteMessageBatchInput, ...func(*sqs.Options)) *sqs.DeleteMessageBatchOutput); ok {
+		r0 = returnFunc(ctx, params, optFns...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*sqs.DeleteMessageBatchOutput)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *sqs.DeleteMessageBatchInput, ...func(*sqs.Options)) error); ok {
+		r1 = returnFunc(ctx, params, optFns...)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// SQSClient_DeleteMessageBatch_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteMessageBatch'
+type SQSClient_DeleteMessageBatch_Call struct {
+	*mock.Call
+}
+
+// DeleteMessageBatch is a helper method to define mock.On call
+//   - ctx context.Context
+//   - params *sqs.DeleteMessageBatchInput
+//   - optFns ...func(*sqs.Options)
+func (_e *SQSClient_Expecter) DeleteMessageBatch(ctx any, params any, optFns ...any) *SQSClient_DeleteMessageBatch_Call {
+	return &SQSClient_DeleteMessageBatch_Call{Call: _e.mock.On("DeleteMessageBatch",
+		append([]any{ctx, params}, optFns...)...)}
+}
+
+func (_c *SQSClient_DeleteMessageBatch_Call) Run(run func(ctx context.Context, params *sqs.DeleteMessageBatchInput, optFns ...func(*sqs.Options))) *SQSClient_DeleteMessageBatch_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *sqs.DeleteMessageBatchInput
+		if args[1] != nil {
+			arg1 = args[1].(*sqs.DeleteMessageBatchInput)
+		}
+		var arg2 []func(*sqs.Options)
+		var variadicArgs []func(*sqs.Options)
+		if len(args) > 2 {
+			variadicArgs = args[2].([]func(*sqs.Options))
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
+	})
+	return _c
+}
+
+func (_c *SQSClient_DeleteMessageBatch_Call) Return(deleteMessageBatchOutput *sqs.DeleteMessageBatchOutput, err error) *SQSClient_DeleteMessageBatch_Call {
+	_c.Call.Return(deleteMessageBatchOutput, err)
+	return _c
+}
+
+func (_c *SQSClient_DeleteMessageBatch_Call) RunAndReturn(run func(ctx context.Context, params *sqs.DeleteMessageBatchInput, optFns ...func(*sqs.Options)) (*sqs.DeleteMessageBatchOutput, error)) *SQSClient_DeleteMessageBatch_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -247,9 +330,9 @@ type SQSClient_GetQueueUrl_Call struct {
 //   - ctx context.Context
 //   - params *sqs.GetQueueUrlInput
 //   - optFns ...func(*sqs.Options)
-func (_e *SQSClient_Expecter) GetQueueUrl(ctx interface{}, params interface{}, optFns ...interface{}) *SQSClient_GetQueueUrl_Call {
+func (_e *SQSClient_Expecter) GetQueueUrl(ctx any, params any, optFns ...any) *SQSClient_GetQueueUrl_Call {
 	return &SQSClient_GetQueueUrl_Call{Call: _e.mock.On("GetQueueUrl",
-		append([]interface{}{ctx, params}, optFns...)...)}
+		append([]any{ctx, params}, optFns...)...)}
 }
 
 func (_c *SQSClient_GetQueueUrl_Call) Run(run func(ctx context.Context, params *sqs.GetQueueUrlInput, optFns ...func(*sqs.Options))) *SQSClient_GetQueueUrl_Call {
@@ -330,9 +413,9 @@ type SQSClient_ReceiveMessage_Call struct {
 //   - ctx context.Context
 //   - params *sqs.ReceiveMessageInput
 //   - optFns ...func(*sqs.Options)
-func (_e *SQSClient_Expecter) ReceiveMessage(ctx interface{}, params interface{}, optFns ...interface{}) *SQSClient_ReceiveMessage_Call {
+func (_e *SQSClient_Expecter) ReceiveMessage(ctx any, params any, optFns ...any) *SQSClient_ReceiveMessage_Call {
 	return &SQSClient_ReceiveMessage_Call{Call: _e.mock.On("ReceiveMessage",
-		append([]interface{}{ctx, params}, optFns...)...)}
+		append([]any{ctx, params}, optFns...)...)}
 }
 
 func (_c *SQSClient_ReceiveMessage_Call) Run(run func(ctx context.Context, params *sqs.ReceiveMessageInput, optFns ...func(*sqs.Options))) *SQSClient_ReceiveMessage_Call {

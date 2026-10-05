@@ -61,7 +61,7 @@ type Message_Attribute_Call struct {
 
 // Attribute is a helper method to define mock.On call
 //   - key string
-func (_e *Message_Expecter) Attribute(key interface{}) *Message_Attribute_Call {
+func (_e *Message_Expecter) Attribute(key any) *Message_Attribute_Call {
 	return &Message_Attribute_Call{Call: _e.mock.On("Attribute", key)}
 }
 
@@ -191,7 +191,7 @@ type Message_Backoff_Call struct {
 
 // Backoff is a helper method to define mock.On call
 //   - delay time.Duration
-func (_e *Message_Expecter) Backoff(delay interface{}) *Message_Backoff_Call {
+func (_e *Message_Expecter) Backoff(delay any) *Message_Backoff_Call {
 	return &Message_Backoff_Call{Call: _e.mock.On("Backoff", delay)}
 }
 
@@ -288,7 +288,7 @@ type Message_Decode_Call struct {
 
 // Decode is a helper method to define mock.On call
 //   - out interface{}
-func (_e *Message_Expecter) Decode(out interface{}) *Message_Decode_Call {
+func (_e *Message_Expecter) Decode(out any) *Message_Decode_Call {
 	return &Message_Decode_Call{Call: _e.mock.On("Decode", out)}
 }
 
@@ -339,7 +339,7 @@ type Message_DecodeMessage_Call struct {
 
 // DecodeMessage is a helper method to define mock.On call
 //   - out any
-func (_e *Message_Expecter) DecodeMessage(out interface{}) *Message_DecodeMessage_Call {
+func (_e *Message_Expecter) DecodeMessage(out any) *Message_DecodeMessage_Call {
 	return &Message_DecodeMessage_Call{Call: _e.mock.On("DecodeMessage", out)}
 }
 
@@ -557,7 +557,7 @@ type Message_SystemAttributeByKey_Call struct {
 
 // SystemAttributeByKey is a helper method to define mock.On call
 //   - key string
-func (_e *Message_Expecter) SystemAttributeByKey(key interface{}) *Message_SystemAttributeByKey_Call {
+func (_e *Message_Expecter) SystemAttributeByKey(key any) *Message_SystemAttributeByKey_Call {
 	return &Message_SystemAttributeByKey_Call{Call: _e.mock.On("SystemAttributeByKey", key)}
 }
 

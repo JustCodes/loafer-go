@@ -53,9 +53,9 @@ type Logger_Log_Call struct {
 
 // Log is a helper method to define mock.On call
 //   - args ...any
-func (_e *Logger_Expecter) Log(args ...interface{}) *Logger_Log_Call {
+func (_e *Logger_Expecter) Log(args ...any) *Logger_Log_Call {
 	return &Logger_Log_Call{Call: _e.mock.On("Log",
-		append([]interface{}{}, args...)...)}
+		append([]any{}, args...)...)}
 }
 
 func (_c *Logger_Log_Call) Run(run func(args ...any)) *Logger_Log_Call {

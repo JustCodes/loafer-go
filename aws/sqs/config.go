@@ -23,13 +23,15 @@ const (
 
 // RouteConfig are a discrete set of route options that are valid for loading the route configuration
 type RouteConfig struct {
-	customGroupFields []string
-	extensionLimit    int
-	runMode           loafergo.Mode
-	visibilityTimeout int32
-	maxMessages       int32
-	waitTimeSeconds   int32
-	workerPoolSize    int32
+	logger             loafergo.Logger
+	customGroupFields  []string
+	extensionLimit     int
+	runMode            loafergo.Mode
+	visibilityTimeout  int32
+	maxMessages        int32
+	waitTimeSeconds    int32
+	workerPoolSize     int32
+	deleteBatchEnabled bool
 }
 
 func loadDefaultRouteConfig() *RouteConfig {
@@ -40,6 +42,7 @@ func loadDefaultRouteConfig() *RouteConfig {
 		waitTimeSeconds:   defaultWaitTimeSeconds,
 		workerPoolSize:    defaultWorkerPoolSize,
 		runMode:           loafergo.Parallel,
+		logger:            loafergo.NoOpLogger{},
 	}
 }
 
@@ -143,6 +146,39 @@ func RouteWithRunMode(v loafergo.Mode) LoadRouteConfigFunc {
 func RouteWithCustomGroupFields(v []string) LoadRouteConfigFunc {
 	return func(rc *RouteConfig) {
 		rc.customGroupFields = v
+	}
+}
+
+// RouteWithDeleteBatch enables grouping message deletions into DeleteMessageBatch calls,
+// cutting the number of delete API calls by up to 10x.
+//
+// With it enabled Commit becomes asynchronous: it hands the message over to the batcher
+// and returns nil right away, so workers never block waiting on a delete. The outcome of
+// the delete is reported through the logger set with RouteWithLogger.
+//
+// Batching is opportunistic, with no timer: a delete is sent as soon as the batcher is free,
+// together with whatever else was committed while the previous request was in flight, up
+// to the AWS limit of 10. Under load requests go out full; under light load they carry a
+// single entry, so no delete waits on another message and FIFO message groups are not held
+// back.
+//
+// Handlers must be idempotent: a delete still pending when the process dies means the
+// message is redelivered.
+func RouteWithDeleteBatch() LoadRouteConfigFunc {
+	return func(rc *RouteConfig) {
+		rc.deleteBatchEnabled = true
+	}
+}
+
+// RouteWithLogger sets the logger the route uses to report delete batch failures.
+// It defaults to loafergo.NoOpLogger, and normally receives the same logger given to the
+// loafergo.Config driving the manager. A nil logger is ignored.
+func RouteWithLogger(l loafergo.Logger) LoadRouteConfigFunc {
+	return func(rc *RouteConfig) {
+		if l == nil {
+			return
+		}
+		rc.logger = l
 	}
 }
 

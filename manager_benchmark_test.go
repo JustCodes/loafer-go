@@ -17,16 +17,16 @@ func BenchmarkManager_Run(b *testing.B) {
 	defer cancel()
 
 	message := new(fake.Message)
+	logger := new(fake.Logger)
+	logger.On("Log", mock.Anything).Return()
+
 	router := new(fake.Router)
 	router.On("Configure", mock.Anything).Return(nil)
 	router.On("WorkerPoolSize", mock.Anything).Return(int32(4))
 	router.On("RunMode", mock.Anything).Return(loafergo.Parallel)
-	router.On("GetMessages", mock.Anything).Return([]loafergo.Message{message}, nil).Maybe()
+	router.On("GetMessages", mock.Anything, logger).Return([]loafergo.Message{message}, nil).Maybe()
 	router.On("HandlerMessage", mock.Anything, message).Return(nil)
 	router.On("Commit", mock.Anything, message).Return(nil)
-
-	logger := new(fake.Logger)
-	logger.On("Log", mock.Anything).Return()
 
 	manager := loafergo.NewManager(&loafergo.Config{
 		Logger:       logger,

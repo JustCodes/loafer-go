@@ -11,7 +11,7 @@ LEFTHOOK_VERSION      := v1.4.8
 
 .PHONY: all clean format lint test cover configure \
         install-goimports install-golang-ci install-lefthook install-fieldalignment \
-        update-dependencies check
+        install-mockery generate update-dependencies check
 
 # Default task
 all: lint test
@@ -46,7 +46,7 @@ clean:
 	@go clean -testcache
 
 # Install all dev tools
-configure: install-goimports install-fieldalignment install-golang-ci install-lefthook
+configure: install-goimports install-fieldalignment install-golang-ci install-lefthook install-mockery
 	@echo "Installing lefthook hooks..."
 	@lefthook install
 
@@ -66,6 +66,15 @@ install-golang-ci:
 install-lefthook:
 	@echo "Installing lefthook..."
 	@go install github.com/evilmartians/lefthook@$(LEFTHOOK_VERSION)
+
+# Regenerate the mocks under fake/ from .mockery.yml
+generate:
+	@echo "Generating mocks..."
+	@mockery
+
+install-mockery:
+	@echo "Installing mockery..."
+	@go install github.com/vektra/mockery/v3@latest
 
 # Update module dependencies
 update-dependencies:

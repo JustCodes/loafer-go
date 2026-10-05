@@ -73,7 +73,7 @@ type Producer_Produce_Call struct {
 // Produce is a helper method to define mock.On call
 //   - ctx context.Context
 //   - input *sns.PublishInput
-func (_e *Producer_Expecter) Produce(ctx interface{}, input interface{}) *Producer_Produce_Call {
+func (_e *Producer_Expecter) Produce(ctx any, input any) *Producer_Produce_Call {
 	return &Producer_Produce_Call{Call: _e.mock.On("Produce", ctx, input)}
 }
 
@@ -141,7 +141,7 @@ type Producer_ProduceBatch_Call struct {
 // ProduceBatch is a helper method to define mock.On call
 //   - ctx context.Context
 //   - input *sns.PublishBatchInput
-func (_e *Producer_Expecter) ProduceBatch(ctx interface{}, input interface{}) *Producer_ProduceBatch_Call {
+func (_e *Producer_Expecter) ProduceBatch(ctx any, input any) *Producer_ProduceBatch_Call {
 	return &Producer_ProduceBatch_Call{Call: _e.mock.On("ProduceBatch", ctx, input)}
 }
 

@@ -12,6 +12,7 @@ Loafer Go is a lightweight Go library designed for high-throughput and concurren
   - Parallel (loafergo.Parallel)
 - ✅ **SNS Producer** with support for both standard and FIFO topics
 - ✅ **SQS Batch Receive and Parallel Handling**
+- ✅ **Batched Deletes** (`sqs.RouteWithDeleteBatch`) — up to 10x fewer delete API calls
 - ✅ **Simple API** with clean abstractions and interfaces
 - ✅ **Test Coverage & Benchmarks**
 - ✅ **Fully Configurable** via functional options
@@ -100,6 +101,40 @@ BenchmarkStructToMapWithCache-12                 6046621              1025 ns/op
 
 ---
 
+## 🗑️ Batched Deletes
+
+By default each consumed message costs one `DeleteMessage` call. `sqs.RouteWithDeleteBatch`
+groups them into `DeleteMessageBatch` requests of up to 10 entries — the same ceiling as
+`MaxNumberOfMessages`:
+
+```go
+route := sqs.NewRoute(
+    &sqs.Config{SQSClient: client, Handler: handler, QueueName: "example-1"},
+    sqs.RouteWithMaxMessages(10),
+    sqs.RouteWithDeleteBatch(),
+    sqs.RouteWithLogger(logger), // where delete failures are reported
+)
+```
+
+Batching is opportunistic, with no timer: a delete goes out as soon as the batcher is free,
+together with whatever else was committed while the previous request was in flight. Under
+load requests fill up to 10 entries; under light load they carry a single one, so a delete
+never waits on another message and costs no more than `DeleteMessage` did. Measured against
+LocalStack with 2000 messages: 2000 `DeleteMessage` calls become 205 `DeleteMessageBatch`
+calls (81.5% fewer billed calls overall), and the run is 2x faster since workers no longer
+block on a delete round trip.
+
+Two things to know before enabling it:
+
+- **`Commit` becomes asynchronous.** It hands the message to the batcher and returns `nil`
+  immediately, so the delete outcome is reported through the route logger instead of being
+  returned to the manager.
+- **Handlers must be idempotent.** A delete still pending when the process dies means the
+  message is redelivered — which is already true of SQS at-least-once delivery, but the
+  window is slightly wider.
+
+---
+
 ## 📌 Makefile Tasks
 
 ```makefile
@@ -111,6 +146,8 @@ make install-goimports       # Install GoImports
 make clean                   # Clean test cache
 make test                    # Run tests with coverage
 make test-bench              # Run benchmarks
+make test-integration        # Run integration tests against LocalStack
+make generate                # Regenerate the mocks in fake/
 ```
 
 ---

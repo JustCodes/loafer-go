@@ -3,6 +3,7 @@ package sqs
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
@@ -14,20 +15,27 @@ import (
 const (
 	all                             = "All"
 	defaultVisibilityTimeoutControl = 10
+	// deleteBufferHeadroom multiplies the delete buffer so a flush in flight does not
+	// push Commit onto the single delete fallback.
+	deleteBufferHeadroom = 4
 )
 
 type route struct {
-	sqs               loafergo.SQSClient
-	handler           loafergo.Handler
-	queueName         string
-	queueURL          string
-	customGroupFields []string
-	extensionLimit    int
-	runMode           loafergo.Mode
-	visibilityTimeout int32
-	maxMessages       int32
-	waitTimeSeconds   int32
-	workerPoolSize    int32
+	sqs                loafergo.SQSClient
+	handler            loafergo.Handler
+	logger             loafergo.Logger
+	batcher            *deleteBatcher
+	queueName          string
+	queueURL           string
+	customGroupFields  []string
+	extensionLimit     int
+	runMode            loafergo.Mode
+	batcherOnce        sync.Once
+	visibilityTimeout  int32
+	maxMessages        int32
+	waitTimeSeconds    int32
+	workerPoolSize     int32
+	deleteBatchEnabled bool
 }
 
 // DoneCtxKey is the context key for the done channel that is optionally passed to the router
@@ -62,16 +70,18 @@ func NewRoute(config *Config, optFns ...func(config *RouteConfig)) loafergo.Rout
 	}
 
 	return &route{
-		sqs:               config.SQSClient,
-		handler:           config.Handler,
-		queueName:         config.QueueName,
-		extensionLimit:    cfg.extensionLimit,
-		visibilityTimeout: cfg.visibilityTimeout,
-		maxMessages:       cfg.maxMessages,
-		waitTimeSeconds:   cfg.waitTimeSeconds,
-		workerPoolSize:    cfg.workerPoolSize,
-		runMode:           cfg.runMode,
-		customGroupFields: cfg.customGroupFields,
+		sqs:                config.SQSClient,
+		handler:            config.Handler,
+		logger:             cfg.logger,
+		queueName:          config.QueueName,
+		extensionLimit:     cfg.extensionLimit,
+		visibilityTimeout:  cfg.visibilityTimeout,
+		maxMessages:        cfg.maxMessages,
+		waitTimeSeconds:    cfg.waitTimeSeconds,
+		workerPoolSize:     cfg.workerPoolSize,
+		runMode:            cfg.runMode,
+		customGroupFields:  cfg.customGroupFields,
+		deleteBatchEnabled: cfg.deleteBatchEnabled,
 	}
 }
 
@@ -88,7 +98,29 @@ func (r *route) Configure(ctx context.Context) error {
 	}
 
 	r.queueURL = *o.QueueUrl
+	r.startDeleteBatcher(ctx)
 	return nil
+}
+
+// startDeleteBatcher spins up the delete batcher, which lives for as long as ctx does.
+// It is a no-op unless RouteWithDeleteBatch was used, which keeps the default route on the
+// original one-delete-per-message path.
+func (r *route) startDeleteBatcher(ctx context.Context) {
+	if !r.deleteBatchEnabled {
+		return
+	}
+
+	r.batcherOnce.Do(func() {
+		// The buffer has to absorb everything the route hands over while the flusher is
+		// blocked on a delete round trip, which is more than one receive batch plus one
+		// in-flight Commit per worker. Benchmarking 2000 messages showed a buffer that
+		// size saturating and falling back to single deletes; the headroom below removes
+		// it, and costs only a few hundred pointers.
+		capacity := deleteBufferHeadroom * (int(r.maxMessages) + int(r.workerPoolSize) + maxDeleteBatchSize)
+		b := newDeleteBatcher(r.sqs, r.logger, r.queueURL, capacity)
+		r.batcher = b
+		go b.run(ctx)
+	})
 }
 
 // GetMessages gets messages from queue
@@ -118,22 +150,33 @@ func (r *route) GetMessages(ctx context.Context, logger loafergo.Logger) (messag
 	return
 }
 
-// Commit deletes the message from the queue
+// Commit deletes the message from the queue.
+//
+// When the route was built with RouteWithDeleteBatch the message is handed to the delete
+// batcher and Commit returns nil immediately, without blocking the worker - the delete
+// outcome is logged by the batcher instead of being returned here.
 func (r *route) Commit(ctx context.Context, m loafergo.Message) error {
 	// if the handler backed off the message, we should not delete it
 	if m.BackedOff() {
 		return nil
 	}
 
+	// The batcher refuses when it is shutting down or saturated: keep the delete synchronous
+	// then, rather than dropping it or blocking the worker.
+	if r.batcher != nil && r.batcher.enqueue(m) {
+		return nil
+	}
+	return r.deleteMessage(ctx, m)
+}
+
+// deleteMessage removes a single message from the queue.
+func (r *route) deleteMessage(ctx context.Context, m loafergo.Message) error {
 	defer m.Dispatch()
 	identifier := m.Identifier()
 	_, err := r.sqs.DeleteMessage(
 		ctx,
 		&sqs.DeleteMessageInput{QueueUrl: &r.queueURL, ReceiptHandle: &identifier},
 	)
-	if err != nil {
-		return err
-	}
 	return err
 }
 

@@ -83,6 +83,9 @@ func main() {
 			sqs.RouteWithMaxMessages(5),
 			sqs.RouteWithWaitTimeSeconds(8),
 			sqs.RouteWithWorkerPoolSize(workPool),
+			// group the deletes of a receive cycle into a single DeleteMessageBatch call
+			sqs.RouteWithDeleteBatch(),
+			sqs.RouteWithLogger(loafergo.LoggerFunc(log.Println)),
 		),
 		sqs.NewRoute(&sqs.Config{
 			SQSClient: sqsClient,
